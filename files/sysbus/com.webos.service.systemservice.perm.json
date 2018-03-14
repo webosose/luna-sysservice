@@ -1,0 +1,5 @@
+{
+	"com.webos.service.systemservice":[
+		"networking", "settings", "system", "telephony", "applications.internal"
+	]
+}

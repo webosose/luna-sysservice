@@ -1,0 +1,14 @@
+{
+    "role": {
+        "exeName":"/usr/lib/luna/LunaSysService",
+        "type": "regular",
+        "allowedNames": ["com.webos.service.systemservice"]
+    },
+    "permissions": [
+        {
+            "service":"com.webos.service.systemservice",
+            "inbound":["*"],
+            "outbound":["*"]
+        }
+    ]
+}
