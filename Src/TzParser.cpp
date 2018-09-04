@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2019 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -430,6 +430,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 		const ttentry& entry = ttEntryList[i];
 		const ttinfo& info   = ttInfoList[entry.indexToLocalTime];
 		struct tm* gmTime    = gmtime(&entry.time);
+		if (NULL==gmTime) continue;
 		
 		TzTransition trans;
 		trans.time        = entry.time;
