@@ -10,7 +10,9 @@
 				"com.webos.service.settingsservice",
 				"com.webos.service.telephony",
 				"com.webos.service.alarm",
-				"com.webos.service.applicationManager"
+				"com.webos.service.applicationManager",
+				"com.webos.service.activitymanager.client",
+				"com.webos.monitor"
 			]
 		}
 	]
