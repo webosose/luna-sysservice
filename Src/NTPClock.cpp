@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 LG Electronics, Inc.
+// Copyright (c) 2013-2019 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -134,7 +134,7 @@ bool NTPClock::requestNTP(LSMessage *message /* = NULL */)
 	envp = g_environ_setenv(envp, "LC_ALL", "C", true);
 
 	int fdOut;
-	GError *error;
+	GError *error = nullptr;
 	gboolean ret = g_spawn_async_with_pipes(
 		/* workdir */ 0, argv, envp,
 		GSpawnFlags (G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD),
@@ -152,6 +152,8 @@ bool NTPClock::requestNTP(LSMessage *message /* = NULL */)
 			"Failed to spawn sntp"
 		);
 		postError();
+		g_error_free (error);
+		error = nullptr;
 		return false;
 	}
 

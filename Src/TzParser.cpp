@@ -19,7 +19,7 @@
  *
  * Partially based on localtime.c from tzcode distribution. Licensing
  * for it follows:
- * 
+ *
  * This file is in the public domain, so clarified as of
  * 1996-06-05 by Arthur David Olson.
  * ============================================================ */
@@ -200,7 +200,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 	(void) timeCnt;
 	(void) typeCnt;
 	(void) charCnt;
-	
+
 	int index = 0;
 	for (int stored = 4; stored <= 8; stored *= 2) {
 
@@ -211,7 +211,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 			free(buf);
 			return TzTransitionList();
 		}
-		
+
 		struct tzhead* head = (struct tzhead*) (buf + index);
 
 		leapCnt = detzcode(head->tzh_leapcnt);
@@ -247,6 +247,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 			index += stored;
 			
 			ttentry e;
+			memset(&e, 0, sizeof(e));
 			e.time = time;
 			ttEntryList.push_back(e);
 
@@ -262,8 +263,8 @@ TzTransitionList parseTimeZone(const char* tzName)
 			index++;
 
 			ttEntryList[i].indexToLocalTime = indexToLocalTime;
-			
-			DBG("tzh_timecnt: Index: %d\n", indexToLocalTime);			
+
+			DBG("tzh_timecnt: Index: %d\n", indexToLocalTime);
 		}
 
 		/* These values serve as indices into an  array  of
@@ -345,7 +346,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 			(void) standardOrWallClock;
 			DBG("standardOrWallClock: %d\n", standardOrWallClock);
 		}
-	
+
 
 		/*
 		  Finally, there are tzh_ttisgmtcnt UTC/local indicators,
@@ -410,9 +411,9 @@ TzTransitionList parseTimeZone(const char* tzName)
 			break;
 		}
 	}
-	
+
 	DBG("Total Buffer size parsed: %d\n", index);
-	
+
 	free(buf);
 
 	// Dummy entry for standardized timezones which never had
@@ -422,7 +423,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 		timeCnt = 1;
 		e.time = -2147483648UL;
 		e.indexToLocalTime = 0;
-		ttEntryList.push_back(e);		
+		ttEntryList.push_back(e);
 	}
 
 	TzTransitionList result;
@@ -431,7 +432,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 		const ttinfo& info   = ttInfoList[entry.indexToLocalTime];
 		struct tm* gmTime    = gmtime(&entry.time);
 		if (NULL==gmTime) continue;
-		
+
 		TzTransition trans;
 		trans.time        = entry.time;
 		trans.utcOffset   = info.gmtOffset;
