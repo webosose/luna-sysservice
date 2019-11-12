@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2019 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -76,6 +76,8 @@ public:
     typedef std::vector<std::string> TimeSources;
 
     TimePrefsHandler(LSHandle* serviceHandle);
+    TimePrefsHandler(const TimePrefsHandler&) = delete;
+    TimePrefsHandler& operator=(const TimePrefsHandler&) = delete;
 
     virtual std::list<std::string> keys() const;
     virtual bool validate(const std::string& key, const pbnjson::JValue &value);
