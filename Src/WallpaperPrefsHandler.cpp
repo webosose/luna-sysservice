@@ -464,7 +464,7 @@ bool WallpaperPrefsHandler::importWallpaper(std::string& ret_wallpaperName, cons
         }
         scale /= prescale;
 
-        if(scale != 1.0) {
+        if(!(abs(scale - 1.0) < 0.1)) {
             image = image.scaled(image.width() * scale, image.height() * scale);
             if (image.isNull()) {
                 errorText = std::strerror(errno);
@@ -667,7 +667,7 @@ bool WallpaperPrefsHandler::convertImage(const std::string& pathToSourceFile,
     scale /= prescale;
     qDebug("convertImage(): scale after prescale adjustment: %f, prescale: %f", scale, prescale);
 
-    if (scale != 1.0) {
+    if(!(abs(scale - 1.0) < 0.1)) {
         qDebug("convertImage(): scaling image\n");
         image = image.scaled(scale * image.width(), scale * image.height());
         if (image.isNull()) {

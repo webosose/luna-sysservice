@@ -23,7 +23,8 @@
 #include <QtGui/QImage>
 
 class WallpaperPrefsHandler : public PrefsHandler {
-
+private:
+        void init();
 public:
 
 	WallpaperPrefsHandler(LSHandle* serviceHandle);
@@ -34,7 +35,6 @@ public:
 	virtual void valueChanged(const std::string& key, const pbnjson::JValue &value);
 	virtual bool validate(const std::string& key, const pbnjson::JValue &value, const std::string& originId);
 	virtual pbnjson::JValue valuesForKey(const std::string& key);
-	virtual void init();
 
 	virtual bool isPrefConsistent();
 	virtual void restoreToDefault();

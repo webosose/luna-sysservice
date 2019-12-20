@@ -52,7 +52,8 @@
 #define TZ_ABBR_ERR_CHAR  '_'
 
 #define TYPE_SIGNED(type) (((type) -1) < 0)
-#define TYPE_INTEGRAL(type) (((type) 0.5) != 0.5)
+#define TYPE_INTEGRAL(type) (!(abs(((type) 0.5) - 0.5) < 0.1))
+
 
 struct tzhead {
 	char    tzh_magic[4];       /* TZ_MAGIC */

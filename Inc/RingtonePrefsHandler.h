@@ -22,18 +22,19 @@
  
 class RingtonePrefsHandler : public PrefsHandler 
 {
+private:
+        void init();
 public:
 
 	RingtonePrefsHandler(LSHandle* serviceHandle);
 	virtual ~RingtonePrefsHandler();
-	virtual void init();
-		
+
 	virtual std::list<std::string> keys() const;
 	virtual bool validate(const std::string& key, const pbnjson::JValue &value);
 	virtual void valueChanged(const std::string& key, const pbnjson::JValue &value);
 	virtual pbnjson::JValue valuesForKey(const std::string& key);
 	virtual bool isPrefConsistent();
 	virtual void restoreToDefault();
-};	
+};
  
 #endif

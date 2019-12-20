@@ -357,7 +357,7 @@ static bool quotesRequired(const std::string& value)
 	const char* val_str = value.c_str();
 	char* pEnd;
 	double result = strtod(val_str, &pEnd);
-	if (result != 0.0) {
+	if (!(abs(result - 0.0) < 0.1)) {
 		isQuotes = false;			// maybe number, will continue check
 		while (*pEnd != '\0') {
 			if (!isspace(*pEnd)) {		// if we have not spaces symbols after number => we have string
