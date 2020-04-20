@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2019 LG Electronics, Inc.
+// Copyright (c) 2010-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -225,7 +225,7 @@ public:
      static gboolean source_periodic(gpointer userData);
      static void     source_periodic_destroy(gpointer userData);
 
-    const bool getMicomAvailable() const { return m_micomAvailable; }
+    bool getMicomAvailable() const { return m_micomAvailable; }
     void setMicomAvailable(bool a_micomAvailable) { m_micomAvailable = a_micomAvailable; }
     void saveAlternativeFactorySource(int priority, time_t systemOffset, time_t lastUpdate);
     void applyAlternativeFactorySource();
