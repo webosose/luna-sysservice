@@ -1,4 +1,4 @@
 Open Source Software Package:
-- name: webOSOSE-luna-sysservice
-  source: https://github.com/webosose/luna-sysservice
+- name: webOSOSE
+  source: https://github.com/webosose
   license: Apache-2.0
