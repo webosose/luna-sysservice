@@ -1,0 +1,7 @@
+{
+    "allowedNames" : [],
+    "systemsettings.management" : ["oem"],
+    "systemsettings.query" : ["oem"],
+    "time.management" : ["oem"],
+    "time.query" : ["dev"]
+}

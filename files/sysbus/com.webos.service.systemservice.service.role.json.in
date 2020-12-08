@@ -1,5 +1,6 @@
 {
 	"exeName":"@WEBOS_INSTALL_SBINDIR@/LunaSysService",
+        "trustLevel" : ["oem"],
 	"type": "regular",
 	"allowedNames": ["com.webos.service.systemservice"],
 	"permissions": [
