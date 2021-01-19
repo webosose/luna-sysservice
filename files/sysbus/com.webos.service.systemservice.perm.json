@@ -1,6 +1,6 @@
 {
 	"com.webos.service.systemservice":[
 		 "settings.query", "application.launcher", "systemsettings.management",
-		 "connectionmanager.query","networkconnection.query"
+		 "networkconnection.query"
 	]
 }
