@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2021 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -1129,6 +1129,10 @@ bool TimeZoneService::createManualTimeZone(UserTzData& a_userTz)
 	std::string tzRule = "-";
 
 	fpZone = fopen(usrDefinedTZFilePath, "wb");
+	if (fpZone == NULL)
+	{
+		return false;
+	}
 
 	if(a_userTz.standardDateRule.valid)
 	{

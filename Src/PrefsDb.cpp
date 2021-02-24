@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2021 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -429,9 +429,8 @@ void PrefsDb::openPrefsDb()
 	}
 
 	gchar* prefsDirPath = g_path_get_dirname(m_dbFilename.c_str());
-	g_mkdir_with_parents(prefsDirPath, 0755);
+	(void)g_mkdir_with_parents(prefsDirPath, 0755);
 	g_free(prefsDirPath);
-
 	int ret = sqlite3_open(m_dbFilename.c_str(), &m_prefsDb);
 	if (ret) {
 		qWarning() << "Failed to open preferences db [" << m_dbFilename.c_str() << "]";
