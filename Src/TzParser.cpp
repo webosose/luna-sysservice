@@ -192,11 +192,15 @@ TzTransitionList parseTimeZone(const char* tzName)
 			  The number of characters of "time zone abbreviation strings" stored in the file.
 	*/
 	
+	long ttisgmtCnt = 0;
+	long ttisstdCnt = 0;
 	long leapCnt = 0;
 	long timeCnt = 0;
 	long typeCnt = 0;	
 	long charCnt = 0;
 
+	(void) ttisgmtCnt;
+	(void) ttisstdCnt;
 	(void) leapCnt;
 	(void) timeCnt;
 	(void) typeCnt;
@@ -207,7 +211,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 
 		DBG("-----------------------------------------------------\n");
 
-		if (memcmp(buf, TZ_MAGIC, 4) != 0) {
+		if (memcmp(buf+index, TZ_MAGIC, 4) != 0) {
 			printf("Not a tz file. Header signature mismatch: %s\n", filePath.c_str());
 			free(buf);
 			return TzTransitionList();
@@ -215,6 +219,8 @@ TzTransitionList parseTimeZone(const char* tzName)
 
 		struct tzhead* head = (struct tzhead*) (buf + index);
 
+		ttisgmtCnt = detzcode(head->tzh_ttisgmtcnt);
+		ttisstdCnt = detzcode(head->tzh_ttisstdcnt);
 		leapCnt = detzcode(head->tzh_leapcnt);
 		timeCnt = detzcode(head->tzh_timecnt);
 		typeCnt = detzcode(head->tzh_typecnt);
@@ -339,7 +345,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 		  time or wall clock time, and are used when a time zone file is
 		  used in handling POSIX-style time zone environment variables.
 		*/
-		for (long i = 0; i < typeCnt; i++) {
+		for (long i = 0; i < ttisstdCnt; i++) {
 
 			int standardOrWallClock = (unsigned char) buf[index];
 			index++;
@@ -356,7 +362,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 		  specified as UTC or local time, and are used when a time zone
 		  file is used in handling POSIX-style time zone environment variables.
 		*/
-		for (long i = 0; i < typeCnt; i++) {
+		for (long i = 0; i < ttisgmtCnt; i++) {
 
 			int utcOrLocalTime = (unsigned char) buf[index];
 			index++;
