@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2021 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 #include "Logging.h"
 
-#include <QFileInfo>
+#include <QtCore/QFileInfo>
 
 PmLogContext& sysServiceLogContext()
 {
@@ -46,7 +46,7 @@ void logInfo(const char* file, int line, const char* func, const char *fmt, ...)
 	va_start(args, fmt);
 
 	QString meta = QString("%1#%2").arg(QFileInfo(file).baseName()).arg(line);
-	QString data = QString().vsprintf(fmt, args);
+	QString data = QString().vasprintf(fmt, args);
 
 	va_end(args);
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2021 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 #include <pbnjson.hpp>
 #include <luna-service2/lunaservice.h>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 #include <QtGui/QImageReader>
 
 #include "Utils.h"
