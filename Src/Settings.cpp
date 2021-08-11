@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2021 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -113,9 +113,10 @@ bool Settings::load(const char* settingsFile)
 bool Settings::parseCommandlineOptions(int argc, char** argv)
 {
 	gchar* s_logLevelStr = NULL;
+	GError* err = nullptr;
 
 	std::unique_ptr<GError*, void(*)(GError**)>
-			error(nullptr, [](GError** ptr) { g_error_free(*ptr); });
+			error(&err, [](GError** ptr) { g_error_free(*ptr); });
 	std::unique_ptr<GOptionContext, void(*)(GOptionContext*)>
 			context(g_option_context_new(nullptr), g_option_context_free);
 
