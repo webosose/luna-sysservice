@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2021 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,11 @@
 #include <glib.h>
 
 #include <memory>
+#include <fstream>
+#include <cstring>
+#include <iterator>
+#include <algorithm>
+#include <map>
 #include <luna-service2++/error.hpp>
 
 #include "ErrorException.h"
@@ -44,6 +49,7 @@ static bool cbGetPreferences(LSHandle* lsHandle, LSMessage* message,
 							 void* user_data);
 static bool cbGetPreferenceValues(LSHandle* lsHandle, LSMessage* message,
 								  void* user_data);
+static bool cbSwInfo(LSHandle* lsHandle, LSMessage* message, void* user_data);
 
 /*!
  * \page com_palm_systemservice Service API com.webos.service.systemservice/
@@ -61,10 +67,35 @@ static LSMethod s_methods[] = {
 	{ 0, 0 }
 };
 
+static LSMethod q_methods[] = {
+	{ "query", cbSwInfo},
+	{ 0,0}
+};
+
 PrefsFactory::PrefsFactory()
 	: m_serviceHandle(nullptr)
 {
 	PrefsDb::instance();
+}
+
+std::string exec(std::string command)
+{
+	char buffer[128];
+	std::string result = "";
+
+	FILE* pipe = popen(command.c_str(), "r");
+	if (!pipe)
+	{
+	return "";
+	}
+	while (!feof(pipe)) {
+
+	if (fgets(buffer, 128, pipe) != NULL)
+		result += buffer;
+	}
+
+	pclose(pipe);
+	return result;
 }
 
 void PrefsFactory::setServiceHandle(LSHandle* serviceHandle)
@@ -73,6 +104,12 @@ void PrefsFactory::setServiceHandle(LSHandle* serviceHandle)
 
 	LS::Error error;
 	if (!LSRegisterCategory(serviceHandle, "/", s_methods, nullptr, nullptr, error))
+	{
+		qCritical() << "Failed to register methods:" << error.what();
+		return;
+	}
+
+	if (!LSRegisterCategory(serviceHandle, "/softwareInfo", q_methods, nullptr, nullptr, error))
 	{
 		qCritical() << "Failed to register methods:" << error.what();
 		return;
@@ -346,6 +383,73 @@ static bool cbSetPreferences(LSHandle* lsHandle, LSMessage* message,
 
 	LS::Error error;
 	(void) LSMessageReply(lsHandle, message, result.stringify().c_str(), error);
+
+	return true;
+}
+
+static bool cbSwInfo(LSHandle *lsHandle, LSMessage *message, void *)
+{
+	pbnjson::JValue response_json;
+	LS::Message request(message);
+	JObject reply;
+	std::string node = "nodejs_versions";
+	std::vector<std::string> allver;
+	std::map<std::string, std::string> versions;
+	versions.insert(std::pair<std::string, std::string>(node, ""));
+	do
+	{
+		LSMessageJsonParser parser(message, STRICT_SCHEMA(PROPS_1(PROPERTY(parameters, array))));
+		if (!parser.parse(__FUNCTION__, lsHandle, EValidateAndErrorAlways))
+			return true;
+		JValue root = parser.get();
+		JValue parameters = root["parameters"];
+		for (JValue parameters : parameters.items())
+		{
+			auto query = versions.find(parameters.asString());
+			if (query == versions.end())
+			{
+				qWarning() << "reached invalid parameter";
+				response_json =
+					pbnjson::JObject{{"returnValue", false}, {"errorText", "Invalid parameter: " + parameters.stringify()}};
+				request.respond(response_json.stringify().c_str());
+				break;
+			}
+		}
+		std::string nodejsversion = exec("node -v");
+		if (nodejsversion.empty())
+		{
+			reply = JObject{{"returnValue", false}, {"errorText", "Failed to get nodejs version"}};
+			break;
+		}
+		else
+		{
+			nodejsversion.erase(std::remove(nodejsversion.begin(), nodejsversion.end(), '\n'), nodejsversion.end());
+			allver.push_back(nodejsversion);
+		}
+		std::string nodejs6version = exec("node6 -v");
+		if (nodejs6version.empty())
+		{
+			nodejs6version = "";
+		}
+		else
+		{
+			nodejs6version.erase(std::remove(nodejs6version.begin(), nodejs6version.end(), '\n'), nodejs6version.end());
+			allver.push_back(nodejs6version);
+		}
+		pbnjson::JValue version_array = pbnjson::JArray();
+		for (std::string name : allver)
+		{
+			version_array << pbnjson::JValue(name);
+		}
+		reply.put("nodejs_versions", version_array);
+		reply.put("returnValue", true);
+	} while (false);
+
+	LS::Error error;
+	if (!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error))
+	{
+		qWarning() << "Failed to send LS reply: " << error.what();
+	}
 
 	return true;
 }
