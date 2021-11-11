@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2019 LG Electronics, Inc.
+// Copyright (c) 2010-2021 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -112,7 +112,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 	static const char* etcZoneInfoDir = "/usr/share/zoneinfo/Etc/";
 	std::string filePath = zoneInfoDir;
 	filePath += tzName;
-	
+
 	struct stat stBuf;
 	FILE* fp = fopen(filePath.c_str(), "r");
 	if (!fp && errno == ENOENT)
@@ -149,7 +149,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 	{
 		printf("Failed to open file: %s\n", filePath.c_str());
 		return TzTransitionList();
-	}	
+	}
 
 	char* buf = (char*) malloc(stBuf.st_size);
 	size_t size = fread(buf, 1, stBuf.st_size, fp);
@@ -191,16 +191,20 @@ TzTransitionList parseTimeZone(const char* tzName)
 	   tzh_charcnt
 			  The number of characters of "time zone abbreviation strings" stored in the file.
 	*/
-	
+
 	long leapCnt = 0;
 	long timeCnt = 0;
-	long typeCnt = 0;	
+	long typeCnt = 0;
 	long charCnt = 0;
+	long gmtCnt = 0;
+	long stdCnt = 0;
 
 	(void) leapCnt;
 	(void) timeCnt;
 	(void) typeCnt;
 	(void) charCnt;
+	(void) gmtCnt;
+	(void) stdCnt;
 
 	int index = 0;
 	for (int stored = 4; stored <= 8; stored *= 2) {
@@ -219,6 +223,8 @@ TzTransitionList parseTimeZone(const char* tzName)
 		timeCnt = detzcode(head->tzh_timecnt);
 		typeCnt = detzcode(head->tzh_typecnt);
 		charCnt = detzcode(head->tzh_charcnt);
+		gmtCnt = detzcode(head->tzh_ttisgmtcnt);
+		stdCnt = detzcode(head->tzh_ttisstdcnt);
 
 		ttInfoList.clear();
 		ttInfoList.reserve(timeCnt);
@@ -230,13 +236,13 @@ TzTransitionList parseTimeZone(const char* tzName)
 		ttAbbrList.reserve(charCnt + 1);
 
 		index += sizeof(struct tzhead);
-	
-		DBG("tzh_ttisgmtcnt: %ld\n", detzcode(head->tzh_ttisgmtcnt));
-		DBG("tzh_ttisstdcnt: %ld\n", detzcode(head->tzh_ttisstdcnt));
+
 		DBG("tzh_leapcnt: %ld\n", leapCnt);
 		DBG("tzh_timecnt: %ld\n", timeCnt);
 		DBG("tzh_typecnt: %ld\n", typeCnt);
 		DBG("tzh_charcnt: %ld\n", charCnt);
+		DBG("tzh_ttisgmtcnt: %ld\n", gmtCnt);
+		DBG("tzh_ttisstdcnt: %ld\n", stdCnt);
 
 		/* The  above  header  is followed by tzh_timecnt four-byte values of type
 		   long, sorted in ascending order.  These values are  written  in  "standard"
@@ -246,13 +252,13 @@ TzTransitionList parseTimeZone(const char* tzName)
 			time_t time;
 			time = (stored == 4) ? detzcode(buf + index) : detzcode64(buf + index);
 			index += stored;
-			
+
 			ttentry e;
 			memset(&e, 0, sizeof(e));
 			e.time = time;
 			ttEntryList.push_back(e);
 
-			DBG("tzh_timecnt: Time: %ld, %s", time, asctime(gmtime(&time)));			
+			DBG("tzh_timecnt: Time: %ld, %s", time, asctime(gmtime(&time)));
 		}
 
 		/* Next come tzh_timecnt one-byte values of type unsigned char;
@@ -339,7 +345,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 		  time or wall clock time, and are used when a time zone file is
 		  used in handling POSIX-style time zone environment variables.
 		*/
-		for (long i = 0; i < typeCnt; i++) {
+		for (long i = 0; i < stdCnt; i++) {
 
 			int standardOrWallClock = (unsigned char) buf[index];
 			index++;
@@ -356,7 +362,7 @@ TzTransitionList parseTimeZone(const char* tzName)
 		  specified as UTC or local time, and are used when a time zone
 		  file is used in handling POSIX-style time zone environment variables.
 		*/
-		for (long i = 0; i < typeCnt; i++) {
+		for (long i = 0; i < gmtCnt; i++) {
 
 			int utcOrLocalTime = (unsigned char) buf[index];
 			index++;
@@ -473,8 +479,6 @@ int main(int argc, char** argv)
 		printf("year: %d, time: %ld, utcOffset: %ld, isDst: %s, name: '%s'\n",
 			   it->year, it->time, it->utcOffset, it->isDst ? "true" : "false",
 			   it->abbrName);
-			   
-
 	}
 
 	return 0;
