@@ -24,7 +24,9 @@
         "com.webos.service.systemservice/deviceInfo/query",
         "com.webos.service.systemservice/getPreferenceValues",
         "com.webos.service.systemservice/getPreferences",
-        "com.webos.service.systemservice/osInfo/query",
+        "com.webos.service.systemservice/osInfo/query"
+  ],
+  "software.query": [
         "com.webos.service.systemservice/softwareInfo/query"
   ],
   "time.management": [
