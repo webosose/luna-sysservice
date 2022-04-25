@@ -26,9 +26,6 @@ webos_component(4 4 0)
 
 include(FindPkgConfig)
 
-find_program(QMAKE_EXECUTABLE NAMES qmake HINTS ${QTDIR} ENV QTDIR PATH_SUFFIXES bin)
-execute_process(COMMAND ${QMAKE_EXECUTABLE} -query QT_VERSION OUTPUT_VARIABLE QT_VERSION)
-
 # -- check for glib 2.0
 pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 webos_add_compiler_flags(ALL ${GLIB2_CFLAGS})
@@ -67,15 +64,8 @@ if (DESKTOP)
     webos_add_compiler_flags(ALL -DDESKTOP)
 endif()
 
-# -- Check for Qt5, Qt5Gui implicitly links to Qt5Core
-if (QT_VERSION VERSION_GREATER_EQUAL 6.0.0)
-    find_package(Qt6 6.0.0 CONFIG REQUIRED COMPONENTS BuildInternals Core Gui)
-    include_directories(
-        ${Qt6Core_INCLUDE_DIRS}
-        ${Qt6Gui_INCLUDE_DIRS}
-        )
-    set(QT6_LIBRARIES Qt::Core Qt::Gui)
-else ()
+find_package(Qt6 COMPONENTS Core Gui)
+if (NOT Qt6_FOUND)
      pkg_check_modules(QtGui REQUIRED Qt5Gui)
      include_directories(${QtGui_INCLUDE_DIRS})
 endif()
@@ -134,11 +124,6 @@ set(SOURCE_FILES Src/Logging.cpp
     Src/DeviceInfoService.cpp
     )
 add_executable(LunaSysService ${SOURCE_FILES})
-if (QT_VERSION VERSION_GREATER_EQUAL 6.0.0)
-    target_link_libraries(LunaSysService
-                          ${QT6_LIBRARIES}
-                          )
-endif()
 target_link_libraries(LunaSysService
                       ${GLIB2_LDFLAGS}
                       ${GXML2_LDFLAGS}
@@ -155,6 +140,10 @@ target_link_libraries(LunaSysService
                       ${WEBOSI18N_LDFLAGS}
                       rt
                       )
+
+if (Qt6_FOUND)
+    target_link_libraries(LunaSysService PRIVATE Qt::Core Qt::Gui)
+endif()
 
 webos_build_system_bus_files()
 webos_build_daemon()
