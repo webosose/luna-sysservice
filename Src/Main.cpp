@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2022 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@
 #include "DeviceInfoService.h"
 
 #include "BackupManager.h"
-#include "EraseHandler.h"
 #include "TimePrefsHandler.h"
 #include "ClockHandler.h"
 
@@ -247,13 +246,6 @@ int main(int argc, char ** argv)
 	BackupManager* bu_manager = BackupManager::instance();
 	bu_manager->setServiceHandle(serviceHandle);
 
-	// Initialize erase handler
-	EraseHandler* erase_handler = EraseHandler::instance();
-	if (!erase_handler->init())
-	{
-		PmLogError(sysServiceLogContext(), "ERASE_FAILURE", 0, "Failed to init EraseHandler (functionality disabled)");
-	}
-	erase_handler->setServiceHandle(serviceHandle);
 
 	if (!LSCall(serviceHandle, "luna://com.webos.service.settingsservice/getSystemSettings",
 			R"({"keys":["localeInfo"],"subscribe":true})", TimePrefsHandler::cbLocaleHandler,
@@ -285,7 +277,6 @@ int main(int argc, char ** argv)
 	delete device_info_srv;
 	delete os_info_srv;
 	delete time_zone_srv;
-	delete erase_handler;
 	delete bu_manager;
 	delete prefs_factory;
 	delete system_restore;

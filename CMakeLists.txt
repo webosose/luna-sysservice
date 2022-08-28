@@ -1,6 +1,6 @@
 # @@@LICENSE
 #
-# Copyright (c) 2012-2021 LG Electronics, Inc.
+# Copyright (c) 2012-2022 LG Electronics, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -117,7 +117,6 @@ set(SOURCE_FILES Src/Logging.cpp
     Src/NetworkConnectionListener.cpp
     Src/JSONUtils.cpp
     Src/ImageHelpers.cpp
-    Src/EraseHandler.cpp
     Src/ClockHandler.cpp
     Src/NTPClock.cpp
     Src/OsInfoService.cpp

@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2019 LG Electronics, Inc.
+// Copyright (c) 2010-2022 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -423,7 +423,6 @@ static LSMethod s_methods[]  = {
 	{ "convertDate",		TimePrefsHandler::cbConvertDate, LUNA_METHOD_FLAG_DEPRECATED},
 	{ "getSystemUptime",	TimePrefsHandler::getSystemUptime, LUNA_METHOD_FLAG_DEPRECATED},
 	{ "getCurrentTimeZoneByLocale",		TimePrefsHandler::cbTimeZoneByLocale, LUNA_METHOD_FLAG_DEPRECATED},
-	{ "micomSynchronized",    TimePrefsHandler::cbMicomSynchronized, LUNA_METHOD_FLAG_DEPRECATED},
 	{ "setSystemTime",        TimePrefsHandler::cbSetSystemTime, LUNA_METHOD_FLAG_DEPRECATED},
 	{ "setSystemNetworkTime", TimePrefsHandler::cbSetSystemNetworkTime, LUNA_METHOD_FLAG_DEPRECATED},
 	{ "setBroadcastTime",     TimePrefsHandler::cbSetBroadcastTime, LUNA_METHOD_FLAG_DEPRECATED},
@@ -2264,80 +2263,6 @@ bool TimePrefsHandler::isCountryAcrossMultipleTimeZones(const TimeZoneInfo& tzin
 {
 	//placeholder fn in case this logic needs to get more complex
 	return ((tzinfo.howManyZonesForCountry) > 1);
-}
-
-/*!
-\page com_palm_systemservice_time
-\n
-\section com_palm_systemservice_time_micom_synchronized micomSynchronized
-
-\e Public.
-
-com.webos.service.systemservice/time/micomSynchronized
-
-Notify luna-sysservice about the fact that micom were synchronized with latest
-published system time changed.
-Note that micom is service that provides functionality similar real-time-clock
-
-\subsection com_palm_systemservice_time_micom_synchronized_syntax Syntax:
-\code
-{ }
-\endcode
-
-\subsection com_palm_systemservice_time_micom_synchronized_returns Returns:
-\code
-{
-	"returnValue": boolean,
-	"errorText": string,
-	"errorCode": string
-}
-\endcode
-
-\param returnValue Indicates if the call was succesful.
-\param errorText Description of the error if call was not succesful.
-\param errorCode Integer number that allows to distinguish some errors that may
-				 require different ways of handling. This field is optional.
-
-\subsection com_palm_systemservice_time_micom_synchronized_examples Examples:
-
-\code
-luna-send -n 1 -f luna://com.webos.service.systemservice/time/micomSynchronized '{}'
-\endcode
-
-Example response for a succesful call:
-\code
-{ "returnValue": true }
-\endcode
-
-Example response for a failed call:
-\code
-{
-	"returnValue": false,
-	"errorText": "Not a valid json message",
-	"errorCode": 1
-}
-\endcode
-*/
-//static
-bool TimePrefsHandler::cbMicomSynchronized(LSHandle* lsHandle, LSMessage *message,
-										   void *user_data)
-{
-	EMPTY_SCHEMA_RETURN(lsHandle, message);
-
-	const char *replySuccess = "{\"returnValue\":true}";
-
-	TimePrefsHandler* th = (TimePrefsHandler*) user_data;
-
-	th->m_micomTimeStamp = time(0);
-
-	LSError lsError;
-	LSErrorInit(&lsError);
-	if (!LSMessageReply(lsHandle, message, replySuccess, &lsError))
-	{
-		LSErrorFree (&lsError);
-	}
-
-	return true;
 }
 
 /*!

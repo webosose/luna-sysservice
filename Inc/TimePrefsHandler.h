@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2020 LG Electronics, Inc.
+// Copyright (c) 2010-2022 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -216,8 +216,6 @@ public:
 
     static bool cbGetEffectiveBroadcastTime(LSHandle* lsHandle, LSMessage *message,
                                             void *userData);
-    static bool cbMicomSynchronized(LSHandle* lsHandle, LSMessage *message,
-                                    void *user_data);
 
     static bool getSystemUptime(LSHandle* pHandle, LSMessage* message, void* pUserData);
 
