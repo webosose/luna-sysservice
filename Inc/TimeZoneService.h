@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2022 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ public:
 		int  month = -1;
 		int  dayOfWeek = -1;
 		int  day = -1;
-		int  week;
+		int  week = -1;
 		bool onLastDayOfWeekInMonth = false;
 		int  hour = -1;
 		int  minute = -1;
