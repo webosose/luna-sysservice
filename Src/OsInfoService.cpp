@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -150,81 +150,82 @@ Example response for a failed call:
 */
 bool OsInfoService::cbGetOsInformation(LSHandle* lsHandle, LSMessage *message, void *user_data)
 {
-	JObject reply;
-	nyx_device_handle_t device = nullptr;
-	reply.put("returnValue", true);
-	do
-	{
-		JValue payload = JDomParser::fromString(LSMessageGetPayload(message));
-		if (!payload.isObject())
-		{
-			reply = JObject {{"returnValue", false}, {"errorText", "Invalid message payload"}};
-			break;
-		}
+    JObject reply;
+    nyx_device_handle_t device = nullptr;
+    reply.put("returnValue", true);
+    do {
+        auto payload = LSMessageGetPayload(message);
 
-		JValue params = payload["parameters"];
-		if (params.isValid())
-		{
-			if (!params.isArray())
-			{
-				reply = JObject {{"returnValue", false}, {"errorText", "`parameters` needs to be an array"}};
-				break;
-			}
-		}
-		else
-		{
-			// No parameters, lets fill it with all existing keys
-			params = JArray();
-			for (const auto &elem: getCommandMap()) params.append(elem.first);
-		}
+        if (!payload)
+            break;
 
-		nyx_error_t error = nyx_init();
-		if (NYX_ERROR_NONE != error)
-		{
-			qCritical() << "Failed to inititalize nyx library: " << error;
-			reply = JObject {{"returnValue", false}, {"errorText", "Internal error. Can't initialize nyx"}};
-			break;
-		}
+        JValue payloadObj = JDomParser::fromString(payload);
+        if (!payloadObj.isObject()) {
+            reply = JObject { { "returnValue", false }, { "errorText",
+                    "Invalid message payload" } };
+            break;
+        }
 
-		error = nyx_device_open(NYX_DEVICE_OS_INFO, "Main", &device);
-		if ((NYX_ERROR_NONE != error) || (NULL == device))
-		{
-			qCritical() << "Failed to get `Main` nyx device: " << error << "";
-			reply = JObject {{"returnValue", false}, {"errorText", "Internal error. Can't open nyx device"}};
-			break;
-		}
+        JValue params = payloadObj["parameters"];
+        if (params.isValid()) {
+            if (!params.isArray()) {
+                reply = JObject { { "returnValue", false }, { "errorText",
+                        "`parameters` needs to be an array" } };
+                break;
+            }
+        } else {
+            // No parameters, lets fill it with all existing keys
+            params = JArray();
+            for (const auto &elem : getCommandMap())
+                params.append(elem.first);
+        }
 
-		for (JValue param: params.items())
-		{
-			auto query = getCommandMap().find(param.asString());
-			if (query == getCommandMap().end())
-			{
-				reply = JObject {{"returnValue", false}, {"errorText", "Invalid parameter: " + param.stringify()}};
-				break;
-			}
+        nyx_error_t error = nyx_init();
+        if (NYX_ERROR_NONE != error) {
+            qCritical() << "Failed to inititalize nyx library: " << error;
+            reply = JObject { { "returnValue", false }, { "errorText",
+                    "Internal error. Can't initialize nyx" } };
+            break;
+        }
 
-			const char *nyx_result = nullptr;
-			error = nyx_os_info_query(device, query->second, &nyx_result);
-			if (NYX_ERROR_NONE != error)
-			{
-				qCritical() << "Failed to query nyx. Parameter: " << param.stringify().c_str() << ". Error: " << error;
-				reply = JObject {{"returnValue", false}, {"errorText", "Can't get OS parameter: " + param.stringify()}};
-				break;
-			}
+        error = nyx_device_open(NYX_DEVICE_OS_INFO, "Main", &device);
+        if ((NYX_ERROR_NONE != error) || (NULL == device)) {
+            qCritical() << "Failed to get `Main` nyx device: " << error << "";
+            reply = JObject { { "returnValue", false }, { "errorText",
+                    "Internal error. Can't open nyx device" } };
+            break;
+        }
 
-			reply.put(param.asString(), nyx_result);
-		}
-	}
-	while (false);
+        for (JValue param : params.items()) {
+            auto query = getCommandMap().find(param.asString());
+            if (query == getCommandMap().end()) {
+                reply = JObject { { "returnValue", false }, { "errorText",
+                        "Invalid parameter: " + param.stringify() } };
+                break;
+            }
 
-	LS::Error error;
-	if(!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error))
-	{
-		qWarning() << "Failed to send LS reply: " << error.what();
-	}
+            const char *nyx_result = nullptr;
+            error = nyx_os_info_query(device, query->second, &nyx_result);
+            if (NYX_ERROR_NONE != error) {
+                qCritical() << "Failed to query nyx. Parameter: "
+                        << param.stringify().c_str() << ". Error: " << error;
+                reply = JObject { { "returnValue", false }, { "errorText",
+                        "Can't get OS parameter: " + param.stringify() } };
+                break;
+            }
 
-	if (NULL != device) nyx_device_close(device);
-	nyx_deinit();
+            reply.put(param.asString(), nyx_result);
+        }
+    } while (false);
 
-	return true;
+    LS::Error error;
+    if (!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error)) {
+        qWarning() << "Failed to send LS reply: " << error.what();
+    }
+
+    if (NULL != device)
+        nyx_device_close(device);
+    nyx_deinit();
+
+    return true;
 }

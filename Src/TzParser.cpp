@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2021 LG Electronics, Inc.
+// Copyright (c) 2010-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -111,7 +111,8 @@ TzTransitionList parseTimeZone(const char* tzName)
 	static const char* zoneInfoDir = "/usr/share/zoneinfo/";
 	static const char* etcZoneInfoDir = "/usr/share/zoneinfo/Etc/";
 	std::string filePath = zoneInfoDir;
-	filePath += tzName;
+    if (tzName)
+        filePath += tzName;
 
 	struct stat stBuf;
 	FILE* fp = fopen(filePath.c_str(), "r");
@@ -121,7 +122,8 @@ TzTransitionList parseTimeZone(const char* tzName)
 		printf("Failed to find file: %s\n", filePath.c_str());
 
 		filePath = etcZoneInfoDir;
-		filePath += tzName;
+        if (tzName)
+            filePath += tzName;
 
 		fp = fopen(filePath.c_str(), "r");
 		if (!fp && errno == ENOENT)
@@ -151,7 +153,12 @@ TzTransitionList parseTimeZone(const char* tzName)
 		return TzTransitionList();
 	}
 
-	char* buf = (char*) malloc(stBuf.st_size);
+    char *buf = (char*) malloc(stBuf.st_size);
+    if (!buf) {
+        printf("memory allocation failed for stBuf");
+        fclose(fp);
+        return TzTransitionList();
+    }
 	size_t size = fread(buf, 1, stBuf.st_size, fp);
 	fclose(fp);
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -467,12 +467,10 @@ bool WallpaperPrefsHandler::importWallpaper(std::string& ret_wallpaperName, cons
         if(!(abs(scale - 1.0) < 0.1)) {
             image = image.scaled(image.width() * scale, image.height() * scale);
             if (image.isNull()) {
-                errorText = std::strerror(errno);
+                auto errInfo = std::strerror(errno);
+                errorText = errInfo ? errInfo : "";
                 qWarning("importWallpaper(): cannot scale %s %g times: %s\n",
-                         sourceFile.c_str(),
-                         scale,
-                         errorText.c_str()
-                        );
+                        sourceFile.c_str(), scale, errorText.c_str());
                 return false;
             }
         }
@@ -484,12 +482,11 @@ bool WallpaperPrefsHandler::importWallpaper(std::string& ret_wallpaperName, cons
 
         // and write out the file
         if (!image.save(QString::fromStdString(destPathAndFile), 0, 100)) {
-            errorText = std::strerror(errno);
+            auto errInfo = std::strerror(errno);
+            errorText = errInfo ? errInfo : "";
             qWarning("importWallpaper(): cannot save %s to %s: %s\n",
-                     sourceFile.c_str(),
-                     destPathAndFile.c_str(),
-                     errorText.c_str()
-                    );
+                    sourceFile.c_str(), destPathAndFile.c_str(),
+                    errorText.c_str());
             return false;
         }
         qDebug("importWallpaper(): wrote final image to file\n");
@@ -671,13 +668,11 @@ bool WallpaperPrefsHandler::convertImage(const std::string& pathToSourceFile,
         qDebug("convertImage(): scaling image\n");
         image = image.scaled(scale * image.width(), scale * image.height());
         if (image.isNull()) {
-           r_errorText = std::strerror(errno);
-           qWarning("convertImage(): cannot scale %s %g times: %s\n",
-                    pathToSourceFile.c_str(),
-                    scale,
-                    r_errorText.c_str()
-                   );
-           return false;
+            auto errInfo = std::strerror(errno);
+            r_errorText = errInfo ? errInfo : "";
+            qWarning("convertImage(): cannot scale %s %g times: %s\n",
+                    pathToSourceFile.c_str(), scale, r_errorText.c_str());
+            return false;
         }
     }
 
@@ -691,12 +686,11 @@ bool WallpaperPrefsHandler::convertImage(const std::string& pathToSourceFile,
 
     //and write out the file
     if (!image.save(QString::fromStdString(pathToDestFile), format, 100)) {
-        r_errorText = std::strerror(errno);
+        auto errInfo = std::strerror(errno);
+        r_errorText = errInfo ? errInfo : "";
         qWarning("convertImage(): cannot convert %s to %s: %s\n",
-                 pathToSourceFile.c_str(),
-                 pathToDestFile.c_str(),
-                 r_errorText.c_str()
-                );
+                pathToSourceFile.c_str(), pathToDestFile.c_str(),
+                r_errorText.c_str());
         return false;
     }
     qDebug("convertImage(): wrote final image to file\n");
@@ -989,9 +983,10 @@ const std::list<std::string>& WallpaperPrefsHandler::scanForWallpapers(bool rebu
     int rc;
     std::map<std::string,char> thumbExistenceMap;
     int count = scandir(thumbpath.c_str(),&entries,one,alphasort);
-    if (count == -1)
-    {
-        qWarning("Failed to scan dir %s: %s", thumbpath.c_str(), strerror(errno));
+    if (count == -1) {
+        auto errInfo = std::strerror(errno);
+        qWarning("Failed to scan dir %s: %s", thumbpath.c_str(),
+                errInfo ? errInfo : "");
         return m_thumbnails;
     }
     int i;

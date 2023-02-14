@@ -23,12 +23,14 @@
 
 class Trackable;
 
+namespace {
 class Sender
 {
 public:
 	
 	virtual void disconnectTrackable(Trackable* recv) = 0;
 };
+}
 
 class Trackable {
 public:

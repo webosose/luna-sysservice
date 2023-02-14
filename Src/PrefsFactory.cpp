@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2021 LG Electronics, Inc.
+// Copyright (c) 2010-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -314,7 +314,15 @@ static bool cbSetPreferences(LSHandle* lsHandle, LSMessage* message,
 	std::string callerId;
 
 	do {
-		JValue root = JDomParser::fromString(LSMessageGetPayload(message));
+        auto payload = LSMessageGetPayload(message);
+
+        if (!payload) {
+            success = false;
+            errorText = std::string("Payload get failed, null payload");
+            break;
+        }
+
+		JValue root = JDomParser::fromString(payload);
 		if (!root.isObject())
 		{
 			success = false;
@@ -322,7 +330,12 @@ static bool cbSetPreferences(LSHandle* lsHandle, LSMessage* message,
 			break;
 		}
 
-		callerId = (LSMessageGetApplicationID(message) != 0 ? LSMessageGetApplicationID(message) : "" );
+        auto tmpAppId = LSMessageGetApplicationID(message);
+        if (tmpAppId) {
+            callerId = tmpAppId;
+        } else {
+            callerId = "";
+        }
 
 		for (JValue::KeyValue pref: root.children()) {
 			// Is there a preferences handler for this?

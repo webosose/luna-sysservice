@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -166,84 +166,81 @@ Example response for a failed call:
 */
 bool DeviceInfoService::cbGetDeviceInformation(LSHandle* lsHandle, LSMessage *message, void *user_data)
 {
-	JObject reply;
-	nyx_device_handle_t device = nullptr;
+    JObject reply;
+    nyx_device_handle_t device = nullptr;
 
-	do
-	{
-		JValue payload = JDomParser::fromString(LSMessageGetPayload(message));
-		if (!payload.isObject())
-		{
-			reply = JObject {{"returnValue", false}, {"errorText", "Invalid message payload"}};
-			break;
-		}
+    do {
+        auto payload = LSMessageGetPayload(message);
 
-		JValue params = payload["parameters"];
-		if (params.isValid())
-		{
-			if (!params.isArray())
-			{
-				reply = JObject {{"returnValue", false}, {"errorText", "`parameters` needs to be an array"}};
-				break;
-			}
-		}
-		else
-		{
-			// No parameters, lets fill it with all existing keys
-			params = JArray();
-			for (const auto &elem: getCommandMap()) params.append(elem.first);
-		}
+        if (!payload)
+            break;
 
-		nyx_error_t error = nyx_init();
-		if (NYX_ERROR_NONE != error)
-		{
-			qCritical() << "Failed to inititalize nyx library: " << error;
-			reply = JObject {{"returnValue", false}, {"errorText", "Internal error. Can't initialize nyx"}};
-			break;
-		}
+        JValue payloadObj = JDomParser::fromString(payload);
+        if (!payloadObj.isObject()) {
+            reply = JObject { { "returnValue", false }, { "errorText",
+                    "Invalid message payload" } };
+            break;
+        }
 
-		error = nyx_device_open(NYX_DEVICE_DEVICE_INFO, "Main", &device);
-		if ((NYX_ERROR_NONE != error) || (NULL == device))
-		{
-			qCritical() << "Failed to get `Main` nyx device: " << error << "";
-			reply = JObject {{"returnValue", false}, {"errorText", "Internal error. Can't open nyx device"}};
-			break;
-		}
+        JValue params = payloadObj["parameters"];
+        if (params.isValid()) {
+            if (!params.isArray()) {
+                reply = JObject { { "returnValue", false }, { "errorText",
+                        "`parameters` needs to be an array" } };
+                break;
+            }
+        } else {
+            // No parameters, lets fill it with all existing keys
+            params = JArray();
+            for (const auto &elem : getCommandMap())
+                params.append(elem.first);
+        }
 
-		for (JValue param: params.items())
-		{
-			auto query = getCommandMap().find(param.asString());
-			if (query == getCommandMap().end())
-			{
-				reply = JObject {{"returnValue", false}, {"errorText", "Invalid parameter: " + param.stringify()}};
-				break;
-			}
+        nyx_error_t error = nyx_init();
+        if (NYX_ERROR_NONE != error) {
+            qCritical() << "Failed to inititalize nyx library: " << error;
+            reply = JObject { { "returnValue", false }, { "errorText",
+                    "Internal error. Can't initialize nyx" } };
+            break;
+        }
 
-			const char *nyx_result = nullptr;
-			// Some device don't have all available parameters. We will just ignore them.
-			error = nyx_device_info_query(device, query->second, &nyx_result);
-			if (NYX_ERROR_NONE == error)
-			{
-				reply.put(param, nyx_result);
-			}
-			else
-			{
-				reply.put(param, "not supported");
-			}
-		}
+        error = nyx_device_open(NYX_DEVICE_DEVICE_INFO, "Main", &device);
+        if ((NYX_ERROR_NONE != error) || (NULL == device)) {
+            qCritical() << "Failed to get `Main` nyx device: " << error << "";
+            reply = JObject { { "returnValue", false }, { "errorText",
+                    "Internal error. Can't open nyx device" } };
+            break;
+        }
 
-		reply.put("returnValue", true);
-	}
-	while (false);
+        for (JValue param : params.items()) {
+            auto query = getCommandMap().find(param.asString());
+            if (query == getCommandMap().end()) {
+                reply = JObject { { "returnValue", false }, { "errorText",
+                        "Invalid parameter: " + param.stringify() } };
+                break;
+            }
 
-	LS::Error error;
-	if(!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error))
-	{
-		qWarning() << "Failed to send LS reply: " << error.what();
-	}
+            const char *nyx_result = nullptr;
+            // Some device don't have all available parameters. We will just ignore them.
+            error = nyx_device_info_query(device, query->second, &nyx_result);
+            if (NYX_ERROR_NONE == error) {
+                reply.put(param, nyx_result);
+            } else {
+                reply.put(param, "not supported");
+            }
+        }
 
-	if (NULL != device) nyx_device_close(device);
-	nyx_deinit();
+        reply.put("returnValue", true);
+    } while (false);
 
-	return true;
+    LS::Error error;
+    if (!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error)) {
+        qWarning() << "Failed to send LS reply: " << error.what();
+    }
+
+    if (NULL != device)
+        nyx_device_close(device);
+    nyx_deinit();
+
+    return true;
 }

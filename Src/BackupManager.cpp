@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -109,7 +109,7 @@ void BackupManager::initFilesForBackup(bool useFilenameWithoutPath)
 			else
 			{
 				char *dbFilename = strdup(m_p_backupDb->databaseFile().c_str());
-				const char * cstr = basename(dbFilename);
+                const char *cstr = basename(dbFilename ? dbFilename : "");
 				std::string filename = ( cstr ? std::string(cstr) : std::string());
 				free(dbFilename);
 				if (filename.find("/") != std::string::npos)

@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2021 LG Electronics, Inc.
+// Copyright (c) 2010-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #define __STDC_FORMAT_MACROS
 
 #include <string>
+#include <cstring>
 #include <glib.h>
 
 #include <pbnjson.hpp>
@@ -186,55 +187,67 @@ Example response for a failed call:
 bool TimeZoneService::cbGetTimeZoneRules(LSHandle* lsHandle, LSMessage *message,
 										 void *)
 {
-	TimeZoneEntryList entries;
-	JValue root;
-	JValue reply;
+    TimeZoneEntryList entries;
+    JValue reply;
 
-	root = JDomParser::fromString(LSMessageGetPayload(message));
-	if (!root.isArray()) {
-		reply = createJsonReply(false, 0, "Cannot parse json payload. Json root needs to be an array");
-		goto Done;
-	}
+    const char *payload = LSMessageGetPayload(message);
+    if (!payload) {
+        reply = createJsonReply(false, 0,
+                "Payload fetch failed, payload is null");
+    } else {
 
-	for (const JValue entry: root.items()) {
-		TimeZoneEntry tzEntry;
-		
-		// Mandatory (tz)
-		JValue label = entry["tz"];
-		if (!label.isString()) {
-			reply = createJsonReply(false, 0, "Missing tz entry or entry is not a string");
-			goto Done;
-		}
-		tzEntry.tz = label.asString();
+        JValue root = JDomParser::fromString(payload);
+        if (!root.isArray()) {
+            reply =
+                    createJsonReply(false, 0,
+                            "Cannot parse json payload. Json root needs to be an array");
+            goto Done;
+        }
 
-		// Optional (years)
-		label = entry["years"];
-		if (label.isValid()) {
-			if (!label.isArray()) {
-				reply = createJsonReply(false, 0, "years entry is not array");
-				goto Done;
-			}
+        for (const JValue entry : root.items()) {
+            TimeZoneEntry tzEntry;
 
-			for (const JValue year: label.items()) {
-				if (!year.isNumber()) {
-					reply = createJsonReply(false, 0, "entry in years array is not integer");
-					goto Done;
-				}
+            // Mandatory (tz)
+            JValue label = entry["tz"];
+            if (!label.isString()) {
+                reply = createJsonReply(false, 0,
+                        "Missing tz entry or entry is not a string");
+                goto Done;
+            }
+            tzEntry.tz = label.asString();
 
-				tzEntry.years.push_back(year.asNumber<int>());
-			}
-		}
+            // Optional (years)
+            label = entry["years"];
+            if (label.isValid()) {
+                if (!label.isArray()) {
+                    reply = createJsonReply(false, 0,
+                            "years entry is not array");
+                    goto Done;
+                }
 
-		if (tzEntry.years.empty()) {
-			time_t utcTime = time(NULL);
-			struct tm* localTime = localtime(&utcTime);
-			tzEntry.years.push_back(localTime->tm_year + 1900);
-		}
+                for (const JValue year : label.items()) {
+                    if (!year.isNumber()) {
+                        reply = createJsonReply(false, 0,
+                                "entry in years array is not integer");
+                        goto Done;
+                    }
 
-		entries.push_back(tzEntry);
-	}	
-	
-	reply = TimeZoneService::instance()->getTimeZoneRules(entries);
+                    tzEntry.years.push_back(year.asNumber<int>());
+                }
+            }
+
+            if (tzEntry.years.empty()) {
+                time_t utcTime = time(NULL);
+                struct tm *localTime = localtime(&utcTime);
+                if (localTime)
+                    tzEntry.years.push_back(localTime->tm_year + 1900);
+            }
+
+            entries.push_back(tzEntry);
+        }
+
+        reply = TimeZoneService::instance()->getTimeZoneRules(entries);
+    }
 
 Done:
 
@@ -1053,14 +1066,21 @@ void TimeZoneService::updateEasDateDayOfMonth(TimeZoneService::EasSystemTime& ti
 	week = weekStart + week;
 	week = CLAMP(week, 0, 4);
 
-	time.day = days[week * 7 + dayOfWeek];
-	if(time.day == (char)(-1))
-	{
-		if(week == 0)
-			time.day = days[(week+1) * 7 + dayOfWeek];
-		else
-			time.day = days[(week-1) * 7 + dayOfWeek];
-	}
+    auto daysIndex = week * 7 + dayOfWeek;
+    if (daysIndex >= 0)
+        time.day = days[daysIndex];
+
+    if (time.day == (char) (-1)) {
+        if (week == 0) {
+            auto daysIndex = (week + 1) * 7 + dayOfWeek;
+            if (daysIndex >= 0)
+                time.day = days[daysIndex];
+        } else {
+            auto daysIndex = (week - 1) * 7 + dayOfWeek;
+            if (daysIndex >= 0)
+                time.day = days[daysIndex];
+        }
+    }
 
 	qDebug() << "Updated DST start week: " << week
 		<< " day: " << time.day
@@ -1208,6 +1228,7 @@ void TimeZoneService::writeTimeZoneRule(FILE* fp, const char* ruleName,
 	const size_t onDaySize = 8;
 	const size_t dstBiasSize = 8;
 	char onDay[onDaySize];
+    memset(onDay, 0, sizeof(onDay));
 	char dstBias[dstBiasSize];
 	if(bias)
 	{
@@ -1220,28 +1241,22 @@ void TimeZoneService::writeTimeZoneRule(FILE* fp, const char* ruleName,
 		dstBias[1] = '\0';
 	}
 
-        if(entry.week == 5)
-        {
-                sprintf(onDay, "last%s", wday_names[entry.dayOfWeek]);
+    if (entry.dayOfWeek >= 0) {
+        if (entry.week == 5) {
+            sprintf(onDay, "last%s", wday_names[entry.dayOfWeek]);
+        } else {
+            sprintf(onDay, "%s%s%d", wday_names[entry.dayOfWeek], ">=",
+                    entry.day);
         }
-        else
-        {
-                sprintf(onDay, "%s%s%d", wday_names[entry.dayOfWeek],
-                                                ">=",
-                                                entry.day);
-        }
+    }
 
-	//# Rule  NAME    FROM    TO      TYPE    IN      ON      AT      SAVE    LETTER
-	//Rule    US      2007    max     -       Nov     Sun>=1  2:00    0       S
-	fprintf(fp, "%s\t%s\t%d\t%s\t-\t%s\t%s\t%d:%02d\t%s\t%s\n",
-		"Rule", ruleName,
-		entry.year, duration,
-		mon_names[entry.month],
-		onDay,
-		entry.hour, entry.minute,
-		dstBias,
-		isDST ? "D":"S");
-
+    if (entry.month >= 0) {
+        //# Rule  NAME    FROM    TO      TYPE    IN      ON      AT      SAVE    LETTER
+        //Rule    US      2007    max     -       Nov     Sun>=1  2:00    0       S
+        fprintf(fp, "%s\t%s\t%d\t%s\t-\t%s\t%s\t%d:%02d\t%s\t%s\n", "Rule",
+                ruleName, entry.year, duration, mon_names[entry.month], onDay,
+                entry.hour, entry.minute, dstBias, isDST ? "D" : "S");
+    }
 }
 
 void TimeZoneService::writeTimeZoneInfo(FILE* fp, const char* zoneName,
@@ -1259,11 +1274,13 @@ void TimeZoneService::writeTimeZoneInfo(FILE* fp, const char* zoneName,
 
 }
 
-int TimeZoneService::getCurrentYear()
-{
-	time_t utcTime = time(NULL);
-	struct tm* localTime = localtime(&utcTime);
-	return (localTime->tm_year + 1900);
+int TimeZoneService::getCurrentYear() {
+    time_t utcTime = time(NULL);
+    struct tm *localTime = localtime(&utcTime);
+    if (localTime)
+        return (localTime->tm_year + 1900);
+    else
+        return 1900; //error occured while fetching localtime
 }
 
 void TimeZoneService::setOffsetToTime(int offset, char *result)

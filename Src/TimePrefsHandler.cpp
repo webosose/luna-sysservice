@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2022 LG Electronics, Inc.
+// Copyright (c) 2010-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -562,55 +562,68 @@ std::list<std::string> TimePrefsHandler::keys() const
 
 bool TimePrefsHandler::validate(const std::string& key, const pbnjson::JValue &value)
 {
-	if (!value.isValid())
-		return false;
+    if (!value.isValid())
+        return false;
 
-	for (size_t i=0;i<sizeof(timePrefKeys)/sizeof(TimePrefKey);i++) {
-		if (key == timePrefKeys[i].keyName) {
-			if (timePrefKeys[i].validateFn != NULL)
-				return ((*(timePrefKeys[i].validateFn))(this, value));
-			else
-				return false;
-		}
-	}
+    for (size_t i = 0; i < sizeof(timePrefKeys) / sizeof(TimePrefKey); i++) {
+        auto tmpKey = timePrefKeys[i].keyName;
+        if (tmpKey) {
+            if (key == tmpKey) {
+                if (timePrefKeys[i].validateFn != NULL)
+                    return ((*(timePrefKeys[i].validateFn))(this, value));
+                else
+                    return false;
+            }
+        }
+    }
 
-	return false;
+    return false;
 }
 
 void TimePrefsHandler::updateTimeZoneInfo()
 {
-	if((m_p_lastNitzParameter != NULL) && (true == m_p_lastNitzParameter->_tzvalid)) {
-		const TimeZoneInfo* nitzTz = timeZone_ZoneFromOffset(m_p_lastNitzParameter->_offset, m_p_lastNitzParameter->_dst, m_p_lastNitzParameter->_mcc);
-		bool valid_tz = isValidTimeZoneName(nitzTz->name);
-		if(valid_tz)
-		{
-			JValue root = JDomParser::fromString(nitzTz->jsonStringValue);
-			TimeZoneInfo tzInfo;
-			if (TZJsonHelper::extract(root, &tzInfo)) {
-                                if(Settings::instance()->useLocalizedTZ) {
-				        std::unique_ptr<ResBundle> resBundle = std::unique_ptr<ResBundle>(new ResBundle(s_localeStr, s_file, s_resources_path));
-				        tzInfo.city = resBundle->getLocString(tzInfo.city);
-				        tzInfo.description = resBundle->getLocString(tzInfo.description);
-				        tzInfo.country = resBundle->getLocString(tzInfo.country);
-                                }
+    if ((m_p_lastNitzParameter != NULL)
+            && (true == m_p_lastNitzParameter->_tzvalid)) {
+        const TimeZoneInfo *nitzTz = timeZone_ZoneFromOffset(
+                m_p_lastNitzParameter->_offset, m_p_lastNitzParameter->_dst,
+                m_p_lastNitzParameter->_mcc);
+        if (nitzTz) {
+            bool valid_tz = isValidTimeZoneName(nitzTz->name);
+            if (valid_tz) {
+                JValue root = JDomParser::fromString(nitzTz->jsonStringValue);
+                TimeZoneInfo tzInfo;
+                if (TZJsonHelper::extract(root, &tzInfo)) {
+                    if (Settings::instance()->useLocalizedTZ) {
+                        std::unique_ptr < ResBundle > resBundle =
+                                std::unique_ptr < ResBundle
+                                        > (new ResBundle(s_localeStr, s_file,
+                                                s_resources_path));
+                        tzInfo.city = resBundle->getLocString(tzInfo.city);
+                        tzInfo.description = resBundle->getLocString(
+                                tzInfo.description);
+                        tzInfo.country = resBundle->getLocString(
+                                tzInfo.country);
+                    }
 
-				JValue tzInfoJValue = pbnjson::Object();
-				tzInfoJValue.put("timeZone", TZJsonHelper::pack(&tzInfo));
+                    JValue tzInfoJValue = pbnjson::Object();
+                    tzInfoJValue.put("timeZone", TZJsonHelper::pack(&tzInfo));
 
-				std::string reply = tzInfoJValue.stringify();
+                    std::string reply = tzInfoJValue.stringify();
 
-				LSError error;
-				LSErrorInit(&error);
-				if (!(LSCall(getServiceHandle(),"luna://com.webos.service.systemservice/setPreferences", reply.c_str(), nullptr, this, nullptr, &error)))
-				{
-					LSErrorFree(&error);
-				}
-				else {
-					PmLogDebug(sysServiceLogContext(), "set Network TimeZone successfull");
-				}
-			}
-		}
-	}
+                    LSError error;
+                    LSErrorInit(&error);
+                    if (!(LSCall(getServiceHandle(),
+                            "luna://com.webos.service.systemservice/setPreferences",
+                            reply.c_str(), nullptr, this, nullptr, &error))) {
+                        LSErrorFree(&error);
+                    } else {
+                        PmLogDebug(sysServiceLogContext(),
+                                "set Network TimeZone successfull");
+                    }
+                }
+            }
+        }
+    }
 }
 
 void TimePrefsHandler::switchTimeZone(bool b_recover)
@@ -790,14 +803,17 @@ void TimePrefsHandler::valueChanged(const std::string& key, const JValue &value)
 JValue TimePrefsHandler::valuesForKey(const std::string& key)
 {
 	JValue result;
-	for (size_t i=0;i<sizeof(timePrefKeys)/sizeof(TimePrefKey);i++) {
-		if ((key == timePrefKeys[i].keyName) && (timePrefKeys[i].valuesFn != NULL)) {
-			result = ((*(timePrefKeys[i].valuesFn))(this));
-			break;
-		}
-		else if ((key == timePrefKeys[i].keyName) && (timePrefKeys[i].valuesFn == NULL))
-			break;
-	}
+    for (size_t i = 0; i < sizeof(timePrefKeys) / sizeof(TimePrefKey); i++) {
+        if (timePrefKeys[i].keyName) {
+            if ((key == timePrefKeys[i].keyName)
+                    && (timePrefKeys[i].valuesFn != NULL)) {
+                result = ((*(timePrefKeys[i].valuesFn))(this));
+                break;
+            } else if ((key == timePrefKeys[i].keyName)
+                    && (timePrefKeys[i].valuesFn == NULL))
+                break;
+        }
+    }
 
 	if (result.isValid()) {
 		return result;
@@ -1134,9 +1150,11 @@ void TimePrefsHandler::init()
 	readCurrentTimeSettings();
 
    //init the keylist
-	for (size_t i=0;i<sizeof(timePrefKeys)/sizeof(TimePrefKey);i++) {
-		m_keyList.push_back(std::string(timePrefKeys[i].keyName));
-	}
+    for (size_t i = 0; i < sizeof(timePrefKeys) / sizeof(TimePrefKey); i++) {
+        auto key = timePrefKeys[i].keyName;
+        if (key)
+            m_keyList.push_back(key);
+    }
 
 	result = LSRegisterCategory(m_serviceHandle, "/time", s_methods,
 										   NULL, NULL, &lsError);
@@ -2574,12 +2592,6 @@ bool TimePrefsHandler::cbSetSystemNetworkTime(LSHandle * lshandle, LSMessage *me
 
 	VALIDATE_SCHEMA_AND_RETURN_OPTION(lshandle, message, pSchema, EValidateAndErrorAlways);
 
-	PmLogInfo(sysServiceLogContext(), "SET_SYSTEM_NET_TIME", 1,
-		PMLOGKS("SENDER", LSMessageGetSenderServiceName(message)),
-		"/time/setSystemNetworkTime received with %s",
-		LSMessageGetPayload(message)
-	);
-
 	LSError lserror;
 	std::string errorText;
 
@@ -2603,6 +2615,10 @@ bool TimePrefsHandler::cbSetSystemNetworkTime(LSHandle * lshandle, LSMessage *me
 	const char* str = LSMessageGetPayload(message);
 	if( !str )
 		return false;
+
+    PmLogInfo(sysServiceLogContext(), "SET_SYSTEM_NET_TIME", 1,
+            PMLOGKS("SENDER", LSMessageGetSenderServiceName(message)),
+            "/time/setSystemNetworkTime received with %s", str);
 
 	JValue root = JDomParser::fromString(str);
 	if (!root.isObject()) {
