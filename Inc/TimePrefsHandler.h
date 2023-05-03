@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2022 LG Electronics, Inc.
+// Copyright (c) 2010-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ public:
     bool _timevalid;
     bool _tzvalid;
     bool _dstvalid;
-    uint32_t    _localtimeStamp;
+    time_t _localtimeStamp;
 
     NitzParameters();
     NitzParameters(struct tm& timeStruct,int offset,int dst,int mcc,int mnc,bool timevalid,bool tzvalid,bool dstvalid,uint32_t remotetimeStamp);
