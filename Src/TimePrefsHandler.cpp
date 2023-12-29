@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2023 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -4292,7 +4292,8 @@ bool TimePrefsHandler::cbConvertDate(LSHandle* pHandle, LSMessage* pMessage, voi
 		time_t local_time;
 		local_time = mktime(&local_tm);
 		// ctime adds '\n' to the end of the result, so we need a little workaround
-		std::string str_time = ctime(&local_time);
+                char *localtime = ctime(&local_time);
+                std::string str_time = localtime ? localtime : "\n";
 		str_time.pop_back();
 		qDebug("0 date='%s' ctime='%s' local_time=%ld timezone=%ld", date.c_str(), str_time.c_str(),
 			   local_time, timezone);
