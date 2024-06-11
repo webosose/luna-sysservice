@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 #define QUARTER_DECIMATION_THRESHOLD_H 3000
 #define EIGHTH_DECIMATION_THRESHOLD_H  4500
 
-
+#ifdef WEBOS_QT
 bool readImageWithPrescale(QImageReader& reader, QImage& image, double& prescaleFactor)
 {
 	// used to scale the file before it is actually read to memory
@@ -37,7 +37,8 @@ bool readImageWithPrescale(QImageReader& reader, QImage& image, double& prescale
 
 	if(!(abs(prescaleFactor - 1.0) < 0.1))
 		reader.setScaledSize(QSize(reader.size().width() * prescaleFactor, reader.size().height() * prescaleFactor));
-	qDebug("prescale: %f", prescaleFactor);
+	PmLogDebug(sysServiceLogContext(), "prescale: %f", prescaleFactor);
 
 	return reader.read(&image);
 }
+#endif //WEBOS_QT

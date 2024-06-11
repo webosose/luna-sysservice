@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ void NetworkConnectionListener::registerForConnectionManager()
 	bool ret = LSRegisterServerStatusEx(serviceHandle, "com.webos.service.connectionmanager", connectionManagerConnectCallback
 	                                   , this, &m_cookie, &error);
 	if (!ret) {
-		qCritical() << "Failed to register for server status: " << error.message;
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_REGISTER_SERVER", 0, "Failed to register for server status: %s", error.message);
 		LSErrorFree(&error);
 		return;
 	}
@@ -81,7 +81,7 @@ void NetworkConnectionListener::unregisterFromConnectionManager()
 		if (ret) {
 			m_cookie = nullptr;
 		} else {
-			qWarning() << "Failed to unregister from server status: " << error.message;
+			PmLogWarning(sysServiceLogContext(), "REGISTER_FAIL", 0, "Failed to unregister from server status: %s", error.message);
 			LSErrorFree(&error);
 			return;
 		}
@@ -99,7 +99,7 @@ bool NetworkConnectionListener::connectionManagerConnectCallback(LSHandle *sh
 bool NetworkConnectionListener::connectionManagerGetStatusCallback(LSHandle* sh, LSMessage* message, void* ctxt)
 {
 	if (LSMessageIsHubErrorMessage(message)) {  // returns false if message is NULL
-		qWarning("The message received is an error message from the hub");
+		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "The message received is an error message from the hub");
 		return true;
 	}
 	return NetworkConnectionListener::instance()->connectionManagerGetStatusCallback(sh, message);
@@ -115,7 +115,7 @@ bool NetworkConnectionListener::connectionManagerConnectCallback(LSHandle *sh, c
 		                     "{\"subscribe\":true}",
 		                     connectionManagerGetStatusCallback, NULL, NULL, error))
 		{
-			qCritical() << "Failed in calling luna://com.webos.service.connectionmanager/getstatus:" << error.what();
+			PmLogCritical(sysServiceLogContext(), "FAILED_TO_CALL_GETSTATUS", 0, "Failed in calling luna://com.webos.service.connectionmanager/getstatus:%s", error.what());
 		}
 	}
 

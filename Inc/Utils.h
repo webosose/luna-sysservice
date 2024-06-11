@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ std::string toSTLString(const T &arg) {
 	return(out.str());
 }
 
-#define LSREPORT(lse) qCritical( "LS2 Error: %s => %s", (lse).func, (lse).message )
+#define LSREPORT(lse) PmLogCritical(sysServiceLogContext(), "LS2_ERROR", 0, "LS2 Error: %s => %s", (lse).func, (lse).message )
 
 
 char* readFile(const char* filePath);

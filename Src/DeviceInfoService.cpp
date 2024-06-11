@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2023 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ void DeviceInfoService::setServiceHandle(LSHandle* serviceHandle)
 	if (!LSRegisterCategory(serviceHandle, "/deviceInfo",
 		s_device_methods, nullptr, nullptr, error.get()))
 	{
-		qCritical() << "Failed in registering deviceinfo handler method:" << error.what();
+		PmLogCritical(sysServiceLogContext(), "LSREGISTERCATEGORY_FAILED", 0, "Failed in registering deviceinfo handler method:%s", error.what());
 	}
 }
 
@@ -197,16 +197,18 @@ bool DeviceInfoService::cbGetDeviceInformation(LSHandle* lsHandle, LSMessage *me
         }
 
         nyx_error_t error = nyx_init();
-        if (NYX_ERROR_NONE != error) {
-            qCritical() << "Failed to inititalize nyx library: " << error;
+            if (NYX_ERROR_NONE != error)
+            {
+                PmLogCritical(sysServiceLogContext(), "NYX_INIT_FAILED", 0, "Failed to inititalize nyx library: %d", error);
             reply = JObject { { "returnValue", false }, { "errorText",
                     "Internal error. Can't initialize nyx" } };
             break;
         }
 
         error = nyx_device_open(NYX_DEVICE_DEVICE_INFO, "Main", &device);
-        if ((NYX_ERROR_NONE != error) || (NULL == device)) {
-            qCritical() << "Failed to get `Main` nyx device: " << error << "";
+            if ((NYX_ERROR_NONE != error) || (NULL == device))
+            {
+                PmLogCritical(sysServiceLogContext(), "NYX_DEVICE_OPEN_FAILED", 0, "Failed to get `Main` nyx device: %d ", error);
             reply = JObject { { "returnValue", false }, { "errorText",
                     "Internal error. Can't open nyx device" } };
             break;
@@ -234,8 +236,9 @@ bool DeviceInfoService::cbGetDeviceInformation(LSHandle* lsHandle, LSMessage *me
     } while (false);
 
     LS::Error error;
-    if (!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error)) {
-        qWarning() << "Failed to send LS reply: " << error.what();
+    if(!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error))
+    {
+        PmLogWarning(sysServiceLogContext(), "LS_REPLY_ERROR", 0,"%s",error.what());
     }
 
     if (NULL != device)

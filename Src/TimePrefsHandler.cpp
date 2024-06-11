@@ -75,7 +75,7 @@ static const std::string  s_resources_path = "/usr/share/localization/luna-sysse
 
 #undef LSREPORT
 //#define LSREPORT(lse) g_critical( "in %s: %s => %s", __func__, (lse).func, (lse).message )
-#define LSREPORT(lse) qCritical( "in %s: %s => %s", __func__, (lse).func, (lse).message )
+#define LSREPORT(lse) PmLogCritical(sysServiceLogContext(), "FAILED", 0, "in %s: %s => %s", __func__, (lse).func, (lse).message )
 
 #define TIMEOUT_INTERVAL_SEC	5
 
@@ -143,7 +143,7 @@ namespace {
 static void
 print_tzvars (void)
 {
-	qDebug ("tzname[0]='%s' tzname[1]='%s' daylight='%d' timezone='%ld'", tzname[0], tzname[1], daylight, timezone);
+	PmLogDebug(sysServiceLogContext(),"tzname[0]='%s' tzname[1]='%s' daylight='%d' timezone='%ld'", tzname[0], tzname[1], daylight, timezone);
 }
 
 
@@ -155,7 +155,7 @@ set_tz(const char * tz) {
 	putenv(env);
 	tzset();
 
-	qDebug("%s: tz set to %s", __func__, tz);
+	PmLogDebug(sysServiceLogContext(),"%s: tz set to %s", __func__, tz);
 
 	print_tzvars();
 }
@@ -640,7 +640,7 @@ void TimePrefsHandler::switchTimeZone(bool b_recover)
 			PrefsDb::instance()->setPref("lastTimeZone",lastTzName.c_str());
 		}
 
-		qDebug("set TimeZone to [%s]",lastTzName.c_str());
+		PmLogDebug(sysServiceLogContext(),"set TimeZone to [%s]",lastTzName.c_str());
 		jArgs.put("ZoneID", lastTzName);
 		valueChanged("timeZone", jArgs);
 	}
@@ -648,7 +648,7 @@ void TimePrefsHandler::switchTimeZone(bool b_recover)
 	{
 		PrefsDb::instance()->setPref("lastTimeZone",
 				m_cpCurrentTimeZone->name);
-		qDebug("set TimeZone to [%s]",m_cpCurrentTimeZone->name.c_str());
+		PmLogDebug(sysServiceLogContext(),"set TimeZone to [%s]",m_cpCurrentTimeZone->name.c_str());
 
 		TimeZoneService::instance()->createTimeZoneFromEasData(getServiceHandle());
 
@@ -679,12 +679,12 @@ void TimePrefsHandler::valueChanged(const std::string& key, const JValue &value)
 
 		if(isManualTimeUsed() == !bval)
 		{
-			qWarning("value userNetworkTime isn't changed (ignoring)");
+			PmLogWarning(sysServiceLogContext(), "NETWORK_TIME_NOT_CHANGED", 0, "value userNetworkTime isn't changed (ignoring)");
 			return;
 		}
 
                 if(enableNetworkTimeSync(bval) == -1)
-                        qWarning("valueChanged: enableNetworkTimeSync failed");
+		        PmLogWarning(sysServiceLogContext(), "NETWORK_TIME_SYNC_FAILED", 0, "valueChanged: enableNetworkTimeSync failed");
 
 		setNITZTimeEnable(bval);
 
@@ -732,14 +732,14 @@ void TimePrefsHandler::valueChanged(const std::string& key, const JValue &value)
 			const TimeZoneInfo * new_mcTZ = timeZone_ZoneFromName(strval, substrval);
 			if (new_mcTZ) {
 				if (*new_mcTZ == *m_cpCurrentTimeZone) {
-					qDebug("new and old timezones are the same...skipping the rest of the change procedure");
+					PmLogDebug(sysServiceLogContext(),"new and old timezones are the same...skipping the rest of the change procedure");
 					return;
 				}
 				m_cpCurrentTimeZone = new_mcTZ;
 			}
 
 			if (m_cpCurrentTimeZone) {
-				qDebug("%s: successfully mapped to zone [%s]", __func__, m_cpCurrentTimeZone->name.c_str());
+				PmLogDebug(sysServiceLogContext(),"%s: successfully mapped to zone [%s]", __func__, m_cpCurrentTimeZone->name.c_str());
 				setTimeZone(m_cpCurrentTimeZone);
 			}
 			else {
@@ -749,12 +749,12 @@ void TimePrefsHandler::valueChanged(const std::string& key, const JValue &value)
 				m_cpCurrentTimeZone = timeZone_ZoneFromOffset(currOffsetToUTC);
 				if (m_cpCurrentTimeZone == NULL)
 				{
-					qWarning() << "Couldn't pick timezone from offset" << currOffsetToUTC << "... picking a generic zone based on offset";
+					PmLogWarning(sysServiceLogContext(), "TIMEZONE_NOT_PICKED", 0, "Couldn't pick timezone from offset: %d ... picking a generic zone based on offset", currOffsetToUTC);
 					//STILL NULL! pick a generic zone
 					m_cpCurrentTimeZone = timeZone_GenericZoneFromOffset(currOffsetToUTC);
 					if (m_cpCurrentTimeZone == NULL)
 					{
-						qWarning() << "Couldn't pick GENERIC timezone from offset" << currOffsetToUTC << "... last resort: go to default zone";
+						PmLogWarning(sysServiceLogContext(), "TIMEZONE_NOT_PICKED", 0, "Couldn't pick GENERIC timezone from offset %d ... last resort: go to default zone", currOffsetToUTC);
 						//This should never happen unless the syszone list is corrupt. But if it is, pick the failsafe default
 						m_cpCurrentTimeZone = &s_failsafeDefaultZone;
 					}
@@ -772,7 +772,7 @@ void TimePrefsHandler::valueChanged(const std::string& key, const JValue &value)
 			tzTransTimer();
 		}
 		else {
-			qWarning("attempted change of timeZone but no value provided");
+			PmLogWarning(sysServiceLogContext(), "TIMEZONE_NO_VALUE_PROVIDED", 0, "attempted change of timeZone but no value provided");
 		}
 	}
 	else if (key == "timeFormat") {
@@ -782,7 +782,7 @@ void TimePrefsHandler::valueChanged(const std::string& key, const JValue &value)
 			__qMessage("attempted change of timeFormat to [%s]",strval.c_str());
 		}
 		else {
-			qWarning() << "attempted change of timeFormat but no string value provided";
+			PmLogWarning(sysServiceLogContext(), "TIMEZONE_NO_VALUE_PROVIDED", 0, "attempted change of timeFormat but no string value provided");
 		}
 	}
 	else if (key == "timeDriftPeriodHr") {
@@ -792,12 +792,11 @@ void TimePrefsHandler::valueChanged(const std::string& key, const JValue &value)
 			updateDriftPeriod(strval);
 		}
 		else {
-			qWarning() << "attempted change of timeDriftPeriodHr but no string value provided";
+			PmLogWarning(sysServiceLogContext(), "TIMEZONE_NO_VALUE_PROVIDED", 0, "attempted change of timeDriftPeriodHr but no string value provided");
 		}
 	}
 
-	qWarning("valueChanged: useNetworkTime is [%s] , useNetworkTimeZone is [%s]",
-			(this->isNITZTimeEnabled() ? "true" : "false"),(this->isNITZTZEnabled() ? "true" : "false"));
+	PmLogWarning(sysServiceLogContext(), "NETWORK_TIME_VALUE_CHANGED", 0, "valueChanged: useNetworkTime is [%s] , useNetworkTimeZone is [%s]",(this->isNITZTimeEnabled() ? "true" : "false"),(this->isNITZTZEnabled() ? "true" : "false"));
 }
 
 JValue TimePrefsHandler::valuesForKey(const std::string& key)
@@ -861,19 +860,19 @@ JValue TimePrefsHandler::timeZoneListAsJson(const std::string& countryCode, cons
 	do {
 		JValue timeZones = TimePrefsHandler::s_timeZonesJson["timeZone"];
 		if (!timeZones.isArray()) {
-			qWarning() << "Failed to parse timeZone details";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse timeZone details");
 			break;
 		}
 
 		JValue sysZones = TimePrefsHandler::s_timeZonesJson["syszones"];
 		if (!sysZones.isArray()) {
-			qWarning() << "Failed to parse syszones details";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse syszones details");
 			break;
 		}
 
 		JValue mmcInfoObj = TimePrefsHandler::s_timeZonesJson["mmcInfo"];
 		if (!mmcInfoObj.isObject()) {
-			qWarning() << "Failed to parse mmcInfo details";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse mmcInfo details");
 			break;
 		}
 
@@ -1037,7 +1036,7 @@ std::string TimePrefsHandler::getDefaultTZFromJson(TimeZoneInfo * r_pZoneInfo)
 
 	JValue label = s_timeZonesJson["timeZone"];
 	if (!label.isArray()) {
-		qWarning() << "error on json object: it doesn't contain a timezones array";
+		PmLogWarning(sysServiceLogContext(), "TIMEZONE_EMPTY", 0, "error on json object: it doesn't contain a timezones array");
 		if (r_pZoneInfo)
 			*r_pZoneInfo = s_failsafeDefaultZone;
 		return s_failsafeDefaultZone.jsonStringValue;
@@ -1105,7 +1104,7 @@ std::string TimePrefsHandler::transitionNITZValidState(bool nitzValid,bool userS
 	}
 
 	PrefsDb::instance()->setPref("nitzValidity",nextState);
-	qDebug("transitioning [%s] -> [%s]",currentState.c_str(),nextState.c_str());
+	PmLogDebug(sysServiceLogContext(),"transitioning [%s] -> [%s]",currentState.c_str(),nextState.c_str());
 
 	return currentState;
 }
@@ -1159,14 +1158,14 @@ void TimePrefsHandler::init()
 	result = LSRegisterCategory(m_serviceHandle, "/time", s_methods,
 										   NULL, NULL, &lsError);
 	if (!result) {
-		qCritical("Failed in registering time handler method: %s", lsError.message);
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_REGISTER", 0, "Failed in registering time handler method: %s", lsError.message);
 		LSErrorFree(&lsError);
 		return;
 	}
 
 	result = LSCategorySetData(m_serviceHandle, "/time", this, &lsError);
 	if (!result) {
-		qCritical() << "Failed in LSCategorySetData:" << lsError.message;
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_REGISTER", 0, "Failed in LSCategorySetData:%s", lsError.message);
 		LSErrorFree(&lsError);
 		return;
 	}
@@ -1176,15 +1175,15 @@ void TimePrefsHandler::init()
 	{
 		JValue ja = s_timeZonesJson["timeZone"];
 		if (ja.isArray()) {
-			qDebug("%zd timezones loaded from [%s]", ja.arraySize(), s_tzFile);
+			PmLogDebug(sysServiceLogContext(),"%zd timezones loaded from [%s]", ja.arraySize(), s_tzFile);
 		}
 		JValue jsa = s_timeZonesJson["syszones"];
 		if (jsa.isArray()) {
-			qDebug("%zd sys timezones loaded from [%s]", jsa.arraySize(), s_tzFile);
+			PmLogDebug(sysServiceLogContext(),"%zd sys timezones loaded from [%s]", jsa.arraySize(), s_tzFile);
 		}
 	}
 	else {
-		qWarning("Can't parse timezones from the file: %s", s_tzFile);
+		PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Can't parse timezones from the file: %s", s_tzFile);
 	}
 
 	//load the default
@@ -1200,13 +1199,13 @@ void TimePrefsHandler::init()
         iStream >> std::boolalpha >> bval;
 
         if(enableNetworkTimeSync(bval) == -1)
-                qWarning("init: enableNetworkTimeSync failed");
+		PmLogWarning(sysServiceLogContext(), "NETWORK_TIME_SYNC_FAILED", 0, "init: enableNetworkTimeSync failed");
 
 
 	std::string nitzValidityState = PrefsDb::instance()->getPref("nitzValidity");
 	if (nitzValidityState == "") {
 		PrefsDb::instance()->setPref("nitzValidity",NITZVALIDITY_STATE_NITZVALID);
-		qDebug("nitzValidity default set to [%s]",NITZVALIDITY_STATE_NITZVALID);
+		PmLogDebug(sysServiceLogContext(),"nitzValidity default set to [%s]",NITZVALIDITY_STATE_NITZVALID);
 	}
 
 	std::string currentlySetTimeZoneJsonString= PrefsDb::instance()->getPref("timeZone");
@@ -1216,19 +1215,19 @@ void TimePrefsHandler::init()
                 }
 		//set a default
 		PrefsDb::instance()->setPref("timeZone",currentlySetTimeZoneJsonString);
-		qDebug("timezone default set to [%s]",currentlySetTimeZoneJsonString.c_str());
+		PmLogDebug(sysServiceLogContext(),"timezone default set to [%s]",currentlySetTimeZoneJsonString.c_str());
 	}
-	qDebug("timezone default set to [%s]",currentlySetTimeZoneJsonString.c_str());
+	PmLogDebug(sysServiceLogContext(),"timezone default set to [%s]",currentlySetTimeZoneJsonString.c_str());
 
 	std::string currentlySetTimeZoneName = tzNameFromJsonString(currentlySetTimeZoneJsonString);
-	qDebug("timezone default set to [%s]",currentlySetTimeZoneName.c_str());
+	PmLogDebug(sysServiceLogContext(),"timezone default set to [%s]",currentlySetTimeZoneName.c_str());
 
 	scanTimeZoneJson();
 
 	m_cpCurrentTimeZone = timeZone_ZoneFromName(currentlySetTimeZoneName);
 
 	if (m_cpCurrentTimeZone) {
-		qDebug("%s: successfully mapped to zone [%s]", __func__, m_cpCurrentTimeZone->name.c_str());
+		PmLogDebug(sysServiceLogContext(),"%s: successfully mapped to zone [%s]", __func__, m_cpCurrentTimeZone->name.c_str());
 		setTimeZone(m_cpCurrentTimeZone);
 	}
 	else {
@@ -1237,12 +1236,12 @@ void TimePrefsHandler::init()
 		m_cpCurrentTimeZone = this->timeZone_ZoneFromOffset(currOffsetToUTC);
 		if (m_cpCurrentTimeZone == NULL)
 		{
-			qWarning() << " Couldn't pick timezone from offset" << currOffsetToUTC << "... picking a generic zone based on offset";
+			PmLogWarning(sysServiceLogContext(), "TIMEZONE_NOT_PICKED", 0, " Couldn't pick timezone from offset: %d ... picking a generic zone based on offset", currOffsetToUTC);
 			//STILL NULL! pick a generic zone
 			m_cpCurrentTimeZone = timeZone_GenericZoneFromOffset(currOffsetToUTC);
 			if (m_cpCurrentTimeZone == NULL)
 			{
-				qWarning() << "Couldn't pick GENERIC timezone from offset" << currOffsetToUTC << "... last resort: go to default zone";
+				PmLogWarning(sysServiceLogContext(), "TIMEZONE_NOT_PICKED", 0, "Couldn't pick GENERIC timezone from offset: %d ... last resort: go to default zone", currOffsetToUTC);
 				//This should never happen unless the syszone list is corrupt. But if it is, pick the failsafe default
 				m_cpCurrentTimeZone = &s_failsafeDefaultZone;
 			}
@@ -1282,7 +1281,7 @@ void TimePrefsHandler::readCurrentNITZSettings()
 {
 	std::string settingJsonStr = PrefsDb::instance()->getPref("useNetworkTime");
 	bool val;
-	qDebug("string1 is [%s]",settingJsonStr.c_str());
+	PmLogDebug(sysServiceLogContext(),"string1 is [%s]",settingJsonStr.c_str());
 	JValue json = JDomParser::fromString(settingJsonStr);
 	if (json.isBoolean()) {
 		val = json.asBool();
@@ -1296,7 +1295,7 @@ void TimePrefsHandler::readCurrentNITZSettings()
 	setNITZTimeEnable(val);
 
 	settingJsonStr = PrefsDb::instance()->getPref("useNetworkTimeZone");
-	qDebug("string2 is [%s]",settingJsonStr.c_str());
+	PmLogDebug(sysServiceLogContext(),"string2 is [%s]",settingJsonStr.c_str());
 	json = JDomParser::fromString(settingJsonStr);
 	if (json.isBoolean()) {
 		val = json.asBool();
@@ -1314,7 +1313,7 @@ void TimePrefsHandler::readCurrentNITZSettings()
 void TimePrefsHandler::readCurrentTimeSettings()
 {
 	std::string settingJsonStr = PrefsDb::instance()->getPref("timeFormat");
-	qDebug("string1 is [%s]",settingJsonStr.c_str());
+	PmLogDebug(sysServiceLogContext(),"string1 is [%s]",settingJsonStr.c_str());
 	if (settingJsonStr == "") {
 		PrefsDb::instance()->setPref("timeFormat","\"HH12\"");		//must store as a json string, or else baaaad stuff
 		//TODO: fix that ...it's not very robust
@@ -1390,7 +1389,7 @@ std::string TimePrefsHandler::tzNameFromJsonString(const std::string& TZJson)
 {
 	JValue root = JDomParser::fromString(TZJson);
 	if (!root.isObject()) {
-		qWarning() << " Couldn't parse timezone string";
+		PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, " Couldn't parse timezone string");
 		return std::string("");
 	}
 
@@ -1399,7 +1398,7 @@ std::string TimePrefsHandler::tzNameFromJsonString(const std::string& TZJson)
 	JValue label = root["ZoneID"];
 	if (label.isString()) {
 		zoneId = label.asString();
-		qDebug() << "Extracted ZoneID" << zoneId.c_str();
+		PmLogDebug(sysServiceLogContext(),"Extracted ZoneID %s",zoneId.c_str());
 	}
 
 	return zoneId;
@@ -1418,7 +1417,7 @@ std::string TimePrefsHandler::getQualifiedTZIdFromName(const std::string& tzName
 
 	JValue label = s_timeZonesJson["timeZone"];
 	if (!label.isArray()) {
-		qWarning() << "error on json object: it doesn't contain a timezones array";
+		PmLogWarning(sysServiceLogContext(), "JSON_ERROR", 0, "error on json object: it doesn't contain a timezones array");
 		return std::string();
 	}
 
@@ -1435,8 +1434,8 @@ std::string TimePrefsHandler::getQualifiedTZIdFromName(const std::string& tzName
 	//try the sys zones
 	label = s_timeZonesJson["syszones"];
 	if (!label.isArray()) {
-		qWarning() << "error on json object: it doesn't contain a syszones array";
-		return std::string();
+		PmLogWarning(sysServiceLogContext(), "JSON_ERROR", 0, "error on json object: it doesn't contain a syszones array");
+	       	return std::string();
 	}
 
 	for (const JValue timezone: label.items()) {
@@ -1469,7 +1468,7 @@ std::string TimePrefsHandler::getQualifiedTZIdFromJson(const std::string& jsonTz
 		tzName = label.asString();
 	}
 	else {
-		qWarning() << "error on json object: it doesn't contain a ZoneID key";
+		PmLogWarning(sysServiceLogContext(), "JSON_ERROR", 0, "error on json object: it doesn't contain a ZoneID key");
 		return std::string();
 	}
 
@@ -1484,13 +1483,13 @@ void TimePrefsHandler::scanTimeZoneJson()
 	std::map<std::string,std::set<int> > tmpCountryZoneCounterMap;
 
 	if (!s_timeZonesJson.isValid()) {
-		qWarning () << "no json loaded";
+		PmLogWarning(sysServiceLogContext(), "JSON_ERROR", 0, "no json loaded");
 		return;
 	}
 
 	JValue timezones = TimePrefsHandler::s_timeZonesJson["timeZone"];
 	if (!timezones.isArray()) {
-		qWarning() << "invalid json; missing timeZone array";
+		PmLogWarning(sysServiceLogContext(), "JSON_ERROR", 0, "invalid json; missing timeZone array");
 		return;
 	}
 
@@ -1580,7 +1579,7 @@ void TimePrefsHandler::scanTimeZoneJson()
 			m_preferredTimeZoneMapNoDST[off_key] = (*tmpPrefZoneMapIter).second.dstFallback;
 	}
 
-	qDebug("found %zu timezones",m_zoneList.size());
+	PmLogDebug(sysServiceLogContext(),"found %zu timezones",m_zoneList.size());
 
 	for (TimeZoneMapIterator it = m_preferredTimeZoneMapDST.begin();it != m_preferredTimeZoneMapDST.end();it++) {
 	PMLOG_TRACE("DST-MAP: preferred zone found: [%s] , offset = %d , dstSupport = %s",
@@ -1595,7 +1594,7 @@ void TimePrefsHandler::scanTimeZoneJson()
 
 	timezones = s_timeZonesJson["syszones"];
 	if (!timezones.isArray()) {
-		qWarning() << "invalid json; missing syszones array";
+		PmLogWarning(sysServiceLogContext(), "JSON_ERROR", 0, "invalid json; missing syszones array");
 		return;
 	}
 
@@ -1632,7 +1631,7 @@ void TimePrefsHandler::scanTimeZoneJson()
 
 	timezones = s_timeZonesJson["mccInfo"];
 	if (!timezones.isArray()) {
-		qWarning() << "invalid json; missing mccInfo array";
+		PmLogWarning(sysServiceLogContext(), "JSON_ERROR", 0, "invalid json; missing mccInfo array");
 		return;
 	}
 
@@ -1719,15 +1718,14 @@ void TimePrefsHandler::setTimeZone(const TimeZoneInfo * pZoneInfo)
 	{
 		//failsafe default!
 		pZoneInfo = &s_failsafeDefaultZone;
-		qWarning() << "passed in NULL for the zone. Failsafe activated! setting failsafe-default zone: [" << pZoneInfo->name.c_str() << "]";
+		PmLogWarning(sysServiceLogContext(), "NULL_TIMEZONE", 0, "passed in NULL for the zone. Failsafe activated! setting failsafe-default zone: [%s]", pZoneInfo->name.c_str());
 	}
 
 	std::string tzFileActual = s_zoneInfoFolder + pZoneInfo->name;
-	qWarning() << "Checking timezone data from " << tzFileActual.c_str() << "].";
+	PmLogWarning(sysServiceLogContext(), "TIMEZONE_DATA", 0, "Checking timezone data from %s ].",tzFileActual.c_str());
 	if (access(tzFileActual.c_str(), F_OK))
 	{
-		qWarning() << "Missing timezone data for [" << pZoneInfo->name.c_str() << "]."
-			" Failsafe activated! setting failsafe-default zone: [" << s_failsafeDefaultZone.name.c_str() << "]";
+		PmLogWarning(sysServiceLogContext(), "MISSING_TIMEZONE", 0, "Missing timezone data for [%s]. Failsafe activated! setting failsafe-default zone:[%s]",  pZoneInfo->name.c_str(),s_failsafeDefaultZone.name.c_str());
 		pZoneInfo = &s_failsafeDefaultZone;
 		tzFileActual = s_zoneInfoFolder + pZoneInfo->name;
 	}
@@ -1764,10 +1762,10 @@ bool TimePrefsHandler::systemSetTime(time_t deltaTime, const std::string &source
 	struct timeval timeVal;
 	timeVal.tv_sec = time(0) + deltaTime;
 	timeVal.tv_usec = 0;
-	qDebug("%s: settimeofday: %u",__FUNCTION__,(unsigned int)timeVal.tv_sec);
+	PmLogDebug(sysServiceLogContext(),"%s: settimeofday: %u",__FUNCTION__,(unsigned int)timeVal.tv_sec);
 
 	int rc = deltaTime == 0 ? 0 : settimeofday(&timeVal, 0);
-	qDebug("settimeofday %s", ( rc == 0 ? "succeeded" : "failed"));
+	PmLogDebug(sysServiceLogContext(),"settimeofday %s", ( rc == 0 ? "succeeded" : "failed"));
 	if (rc == 0)
 	{
 		if ( m_systemTimeSourceTag != source ) {
@@ -1805,7 +1803,7 @@ void TimePrefsHandler::updateSystemTime()
 	// time-souces like NTP servers etc.
 	if (isManualTimeUsed())
 	{
-		qWarning("updateSystemTime() should never be called when using manual time (ignored)");
+		PmLogWarning(sysServiceLogContext(), "INVALID_CALL", 0, "updateSystemTime() should never be called when using manual time (ignored)");
 		return;
 	}
 
@@ -2048,7 +2046,7 @@ bool TimePrefsHandler::setNITZTimeEnable(bool time_en) {	//returns old value
 	LPAppHandle lpHandle = 0;
 	if (LPAppGetHandle("com.webos.service.systemservice", &lpHandle) == LP_ERR_NONE)
 	{
-	qDebug("Writing networkTimeEnabled = %d", (int)time_en);
+	PmLogDebug(sysServiceLogContext(),"Writing networkTimeEnabled = %d", (int)time_en);
 		LPAppSetValueInt(lpHandle, "networkTimeEnabled", (int)time_en);
 		LPAppFreeHandle(lpHandle, true);
 	}
@@ -2100,7 +2098,7 @@ const TimeZoneInfo* TimePrefsHandler::timeZone_ZoneFromOffset(int offset,int dst
 		const TimeZoneInfo* tzMcc = timeZone_ZoneFromMCC(mcc, 0);
 		if (tzMcc && !tzMcc->countryCode.empty()) {
 
-			qDebug("MCC code: %d, Offset: %d, DstValue: %d, TZ Entry: %s", mcc, offset, dstValue,
+			PmLogDebug(sysServiceLogContext(),"MCC code: %d, Offset: %d, DstValue: %d, TZ Entry: %s", mcc, offset, dstValue,
 					  tzMcc->jsonStringValue.c_str());
 
 			std::string countryCode = tzMcc->countryCode;
@@ -2170,7 +2168,7 @@ const TimeZoneInfo* TimePrefsHandler::timeZone_ZoneFromOffset(int offset,int dst
 				// Finally: just the first in the list
 				TimeZoneInfo* z = mccMatchingTzList.front();
 				if (z) {
-					qDebug("Found match in fifth iteration: %s", z->jsonStringValue.c_str());
+					PmLogDebug(sysServiceLogContext(),"Found match in fifth iteration: %s", z->jsonStringValue.c_str());
 					return z;
 				}
 			}
@@ -2232,12 +2230,12 @@ const TimeZoneInfo* TimePrefsHandler::timeZone_ZoneFromName(const std::string& n
 
 		if (z->name == name)
 		{
-			qDebug("%s: successfully mapped to zone [%s]", __func__, name.c_str());
+			PmLogDebug(sysServiceLogContext(),"%s: successfully mapped to zone [%s]", __func__, name.c_str());
 			convertString(city.c_str(), cityString);
-			qDebug("Received [city: [%s], After Translation city: [%s]", city.c_str(), cityString.c_str());
+			PmLogDebug(sysServiceLogContext(),"Received [city: [%s], After Translation city: [%s]", city.c_str(), cityString.c_str());
 			if( city.empty() || z->city == cityString)
 			{
-				qDebug("Found city : %s", z->city.c_str());
+				PmLogDebug(sysServiceLogContext(),"Found city : %s", z->city.c_str());
 				return z;
 			}
 		}
@@ -2465,7 +2463,7 @@ bool TimePrefsHandler::cbAlarmDActivityStatus(LSHandle* lshandle, LSMessage *mes
 	const char* str = LSMessageGetPayload(message);
 	if( !str )
 		str = "[NO PAYLOAD IN LSMessage!]";
-	qDebug("reported status: %s",str);
+	PmLogDebug(sysServiceLogContext(),"reported status: %s",str);
 	return true;
 }
 
@@ -2627,7 +2625,7 @@ bool TimePrefsHandler::cbSetSystemNetworkTime(LSHandle * lshandle, LSMessage *me
 	}
 
 	memset(&timeStruct,0,sizeof(struct tm));
-	qDebug("NITZ message received from Telephony Service: %s",str);
+	PmLogDebug(sysServiceLogContext(),"NITZ message received from Telephony Service: %s",str);
 
 	label = root["sec"];
 	if (label.isString())
@@ -2777,7 +2775,7 @@ Done_cbSetSystemNetworkTime:
 	{
 		reply.put("returnValue", false);
 		reply.put("errorText", errorText);
-		qWarning() << errorText.c_str();
+		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "error: %s", errorText.c_str());
 	}
 
 	LS::Error error;
@@ -2950,7 +2948,7 @@ void  TimePrefsHandler::nitzHandlerSpecialCaseOffsetValue(NitzParameters& nitz,i
 		nitz._offset = 60;
 		nitz._dst = 1;
 		nitz._dstvalid = true;
-		qWarning() << "Special Case 1 applied! MCC 208 offset 120 -> offset 60, dst=1";
+		PmLogWarning(sysServiceLogContext(), "SPECIAL_CASE", 0, "Special Case 1 applied! MCC 208 offset 120 -> offset 60, dst=1");
 		return;
 	}
 
@@ -2961,7 +2959,7 @@ void  TimePrefsHandler::nitzHandlerSpecialCaseOffsetValue(NitzParameters& nitz,i
 		nitz._offset = 60;
 		nitz._dst = 1;
 		nitz._dstvalid = true;
-		qWarning() << "Special Case 2 applied! MCC 214 offset 120 -> offset 60, dst=1";
+		PmLogWarning(sysServiceLogContext(), "SPECIAL_CASE", 0, "Special Case 2 applied! MCC 214 offset 120 -> offset 60, dst=1");
 		return;
 	}
 }
@@ -2972,7 +2970,7 @@ int TimePrefsHandler::timeoutFunc()
 	{
 		//the timeout has been extended..decrement count and return signaling that cycle should repeat
 		--m_timeoutCycleCount;
-		qDebug("Resetting the timeout cycle, count is now %d", m_timeoutCycleCount);
+		PmLogDebug(sysServiceLogContext(),"Resetting the timeout cycle, count is now %d", m_timeoutCycleCount);
 		return TIMEOUTFN_RESETCYCLE;
 	}
 
@@ -2982,7 +2980,7 @@ int TimePrefsHandler::timeoutFunc()
 	std::string errorText,nitzFnMsg;
 	NitzParameters nitzParam;		//this will be the "working copy" that the handlers will modify
 
-	qDebug("Running the NITZ chain...");
+	PmLogDebug(sysServiceLogContext(),"Running the NITZ chain...");
 	if (timeoutNitzHandlerEntry(nitzParam,nitzFlags,nitzFnMsg) != NITZHANDLER_RETURN_SUCCESS)
 	{
 		errorText = "timeout-nitz message failed entry: "+nitzFnMsg;
@@ -3019,8 +3017,8 @@ int TimePrefsHandler::timeoutFunc()
 
 Done_timeoutFunc:
 
-	if (errorText.size()) qWarning() << "NITZ chain completed:" << errorText.c_str();
-	else qDebug ("NITZ chain completed OK");
+	if (errorText.size()) PmLogWarning(sysServiceLogContext(), "NITZ_COMPLETED", 0, "NITZ chain completed: %s",errorText.c_str());
+	else PmLogDebug(sysServiceLogContext(),"NITZ chain completed OK");
 
 	//if neither automatic time or automatic zone were turned on, then skip advertising the system time or nitz valid status
 	/*
@@ -3033,7 +3031,7 @@ Done_timeoutFunc:
 	 */
 	if ((isNITZTimeEnabled() == false) && (isNITZTZEnabled() == false))
 	{
-		qDebug ("Manual mode was on...not changing any NITZ variables/state");
+		PmLogDebug(sysServiceLogContext(),"Manual mode was on...not changing any NITZ variables/state");
 		//finish, indicating I'd like the periodic source to go away
 		return TIMEOUTFN_ENDCYCLE;
 	}
@@ -3043,7 +3041,7 @@ Done_timeoutFunc:
 	{
 		m_immNitzTimeValid = false;
 		m_immNitzZoneValid = false;
-		qWarning() << "Special-NITZ FAIL scenario detected - UI prompt to follow";
+		PmLogWarning(sysServiceLogContext(), "NITZ_FAIL", 0,  "Special-NITZ FAIL scenario detected - UI prompt to follow");
 		//no...set the overall validity flags (for tracking UI) to invalid, and post the inability to set the time
 		(void)TimePrefsHandler::transitionNITZValidState(false,false);
 		markLastNITZInvalid();
@@ -3053,7 +3051,7 @@ Done_timeoutFunc:
 	{
 		bool totallyGoodNitz = (nitzParam._timevalid) && (nitzParam._tzvalid) && (nitzParam._dstvalid);
 		time_t dbg_time_outp = time(NULL);
-		qDebug("NITZ FINAL: At least something was ok (timevalid = %s,tzvalid = %s,dstvalid = %s), time is now %s",
+		PmLogDebug(sysServiceLogContext(),"NITZ FINAL: At least something was ok (timevalid = %s,tzvalid = %s,dstvalid = %s), time is now %s",
 			(nitzParam._timevalid ? "true" : "false"),
 				(nitzParam._tzvalid ? "true" : "false"),
 				(nitzParam._dstvalid ? "true" : "false"),
@@ -3110,8 +3108,8 @@ void TimePrefsHandler::tzTransTimer(time_t timeout)
 
 	if ( remainSec < 1 ) {
 		PmLogInfo(sysServiceLogContext(), "TIMEZONE_TRANSITION", 2,
-				PMLOGKFV("Next", "%d", m_nextTzTrans),
-				PMLOGKFV("UTC", "%d", time(0)),
+				PMLOGKFV("Next", "%ld", m_nextTzTrans),
+				PMLOGKFV("UTC", "%ld", time(0)),
 				"Incorrect tzTrans information");
 
 		return;
@@ -3139,8 +3137,8 @@ void TimePrefsHandler::tzTransTimer(time_t timeout)
 		m_gsource_tzTrans = NULL;
 	} else {
 		PmLogInfo(sysServiceLogContext(), "TIMEZONE_TRANSITION", 1,
-				PMLOGKFV("Next", "%d", m_nextTzTrans),
-				"TimeZone transition after %d seconds", remainSec);
+				PMLOGKFV("Next", "%ld", m_nextTzTrans),
+				"TimeZone transition after %ld seconds", remainSec);
 
 		//it's owned now by the context
 		g_source_unref(m_gsource_tzTrans);
@@ -3207,7 +3205,7 @@ void TimePrefsHandler::startBootstrapCycle(int delaySeconds)
 
 //#if defined(MACHINE_topaz) || defined(DESKTOP) || defined(MACHINE_opal)
 // @TODO: better handle devices with and without cellulrr
-	qDebug("No Cellular...kicking off time-set timeout cycle in %d seconds (to allow machine to settle down)", delaySeconds);
+	PmLogDebug(sysServiceLogContext(),"No Cellular...kicking off time-set timeout cycle in %d seconds (to allow machine to settle down)", delaySeconds);
 	if (m_p_lastNitzParameter)
 	{
 		m_p_lastNitzParameter->_timevalid = false;	//this will force NTP
@@ -3228,7 +3226,7 @@ void TimePrefsHandler::startTimeoutCycle(unsigned int timeoutInSeconds)
 	if (m_gsource_periodic)
 	{
 		m_timeoutCycleCount = (m_timeoutCycleCount > 0 ? 1 : 0);
-		qDebug("timeout cycle count extended , now %d", m_timeoutCycleCount);
+		PmLogDebug(sysServiceLogContext(),"timeout cycle count extended , now %d", m_timeoutCycleCount);
 		return;
 	}
 
@@ -3245,7 +3243,7 @@ void TimePrefsHandler::startTimeoutCycle(unsigned int timeoutInSeconds)
 	m_gsource_periodic = g_timeout_source_new_seconds(timeoutInSeconds);
 	if (m_gsource_periodic == NULL)
 	{
-		qWarning() << "Failed to create periodic source";
+		PmLogWarning(sysServiceLogContext(), "PERIODIC_SOURCE_FAILED", 0, "Failed to create periodic source");
 		return;
 	}
 	//add the callback functions to it
@@ -3255,13 +3253,13 @@ void TimePrefsHandler::startTimeoutCycle(unsigned int timeoutInSeconds)
 	m_gsource_periodic_id = g_source_attach(m_gsource_periodic,context);
 	if (m_gsource_periodic_id == 0)
 	{
-		qWarning() << "Failed to attach periodic source";
+		PmLogWarning(sysServiceLogContext(), "PERIODIC_SOURCE_FAILED", 0, "Failed to attach periodic source");
 		//destroy the periodic source
 		g_source_destroy(m_gsource_periodic);
 		m_gsource_periodic = NULL;
 	}
 	else {
-		qDebug("Timeout cycle of %d seconds started", timeoutInSeconds);
+		PmLogDebug(sysServiceLogContext(),"Timeout cycle of %d seconds started", timeoutInSeconds);
 		g_source_unref(m_gsource_periodic);		//it's owned now by the context
 	}
 
@@ -3393,7 +3391,7 @@ int  TimePrefsHandler::timeoutNitzHandlerExit(NitzParameters& nitz,int& flags,st
 
 void TimePrefsHandler::setPeriodicTimeSetWakeup()
 {
-	qDebug("%s called",__FUNCTION__);
+	PmLogDebug(sysServiceLogContext(),"%s called",__FUNCTION__);
 
 	if (getServiceHandle() == NULL)
 	{
@@ -3443,14 +3441,14 @@ void TimePrefsHandler::setPeriodicTimeSetWakeup()
 								+timeStr
 								+std::string("\",\"wakeup\":false,\"uri\":\"luna://com.webos.service.systemservice/time/setTimeWithNTP\",\"params\":\"{\\\"source\\\":\\\"periodic\\\"}\"}");
 
-		qDebug("scheduling event for %s in the future or when the device next wakes, whichever is later", timeStr.c_str());
+		PmLogDebug(sysServiceLogContext(),"scheduling event for %s in the future or when the device next wakes, whichever is later", timeStr.c_str());
 		bool lsCallResult = LSCall(getServiceHandle(),
 				"luna://com.webos.service.alarm/set",
 				payload.c_str(),
 				cbSetPeriodicWakeupAlarmDResponse,this,NULL, &lserror);
 
 		if (!lsCallResult) {
-			qWarning() << "call to alarmD failed";
+			PmLogWarning(sysServiceLogContext(), "ALARMD_CALL_FAILED", 0, "call to alarmD failed");
 			LSErrorFree(&lserror);
 			m_sendWakeupSetToAlarmD = true;
 		}
@@ -3512,7 +3510,7 @@ void TimePrefsHandler::dbg_time_timevalidOverride(bool& timevalid)
 	else if (strcasecmp(v.c_str(),"false") == 0)
 		timevalid = false;
 
-	qDebug("timevalid <--- %s", (timevalid ? "true" : "false"));
+	PmLogDebug(sysServiceLogContext(),"timevalid <--- %s", (timevalid ? "true" : "false"));
 }
 
 //static
@@ -3528,7 +3526,7 @@ void TimePrefsHandler::dbg_time_tzvalidOverride(bool& tzvalid)
 	else if (strcasecmp(v.c_str(),"false") == 0)
 		tzvalid = false;
 
-	qDebug("tzvalid <--- %s", (tzvalid ? "true" : "false"));
+	PmLogDebug(sysServiceLogContext(),"tzvalid <--- %s", (tzvalid ? "true" : "false"));
 }
 
 //static
@@ -3544,7 +3542,7 @@ void TimePrefsHandler::dbg_time_dstvalidOverride(bool& dstvalid)
 	else if (strcasecmp(v.c_str(),"false") == 0)
 		dstvalid = false;
 
-	qDebug("dstvalid <--- %s", (dstvalid ? "true" : "false"));
+	PmLogDebug(sysServiceLogContext(),"dstvalid <--- %s", (dstvalid ? "true" : "false"));
 }
 
 /*!
@@ -3684,7 +3682,7 @@ bool TimePrefsHandler::cbServiceStateTracker(LSHandle* lsHandle, LSMessage *mess
 
 	if (th == NULL)
 	{
-		qCritical() << "user_data passed as NULL!";
+		PmLogCritical(sysServiceLogContext(), "USER_DATA_NULL", 0, "user_data passed as NULL!");
 		return true;
 	}
 
@@ -3833,7 +3831,7 @@ bool TimePrefsHandler::cbGetSystemTime(LSHandle* lsHandle, LSMessage *message,
 	//**DEBUG validate for correct UTF-8 output
 	if (!g_utf8_validate(reply.stringify().c_str(), -1, NULL))
 	{
-		qWarning() << "bus reply fails UTF-8 validity check! [" << reply.stringify().c_str() << "]";
+		PmLogWarning(sysServiceLogContext(), "BUS_REPLY_FAIL", 0, "bus reply fails UTF-8 validity check! [%s]",  reply.stringify().c_str());
 	}
 
 	std::cerr << "Result: " << reply.stringify().c_str() << std::endl;
@@ -4087,7 +4085,7 @@ Done:
 	if (errorText.size()) {
 		jsonOutput.put("errorText", errorText);
 		jsonOutput.put("returnValue", false);
-		qWarning() << errorText.c_str();
+		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "error: %s", errorText.c_str());
 	}
 	else
 		jsonOutput.put("returnValue", true);
@@ -4266,7 +4264,7 @@ bool TimePrefsHandler::cbConvertDate(LSHandle* pHandle, LSMessage* pMessage, voi
 		std::string source_tz = root["source_tz"].asString();
 		std::string dest_tz = root["dest_tz"].asString();
 
-		qDebug("%s: converting %s from %s to %s", __func__, date.c_str(), source_tz.c_str(), dest_tz.c_str());
+		PmLogDebug(sysServiceLogContext(),"%s: converting %s from %s to %s", __func__, date.c_str(), source_tz.c_str(), dest_tz.c_str());
 
 		bad_char = (char *) strptime(date.c_str(), "%Y-%m-%d %H:%M:%S", &local_tm);
 		if (NULL == bad_char) {
@@ -4295,7 +4293,7 @@ bool TimePrefsHandler::cbConvertDate(LSHandle* pHandle, LSMessage* pMessage, voi
                 char *localtime = ctime(&local_time);
                 std::string str_time = localtime ? localtime : "\n";
 		str_time.pop_back();
-		qDebug("0 date='%s' ctime='%s' local_time=%ld timezone=%ld", date.c_str(), str_time.c_str(),
+		PmLogDebug(sysServiceLogContext(),"0 date='%s' ctime='%s' local_time=%ld timezone=%ld", date.c_str(), str_time.c_str(),
 			   local_time, timezone);
 
 		if (!tz_exists(dest_tz.c_str())) {
@@ -4303,7 +4301,7 @@ bool TimePrefsHandler::cbConvertDate(LSHandle* pHandle, LSMessage* pMessage, voi
 		}
 
 		set_tz(dest_tz.c_str());
-		qDebug("1 date='%s' ctime='%s' local_time=%ld timezone=%ld", date.c_str(), str_time.c_str(),
+		PmLogDebug(sysServiceLogContext(),"1 date='%s' ctime='%s' local_time=%ld timezone=%ld", date.c_str(), str_time.c_str(),
 			   local_time, timezone);
 
 		g_assert(error_text.get() == nullptr);
@@ -4314,7 +4312,7 @@ bool TimePrefsHandler::cbConvertDate(LSHandle* pHandle, LSMessage* pMessage, voi
 	if (status.get() == nullptr) {
 		g_assert(error_text.get() != nullptr);
 		status = g_strdup_printf("{\"returnValue\":false,\"errorText\":\"%s\"}", error_text.get());
-		qWarning() << error_text.get();
+		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "error: %s", error_text.get());
 	}
 
 	LS::Error error;
@@ -4401,7 +4399,7 @@ bool TimePrefsHandler::getSystemUptime(LSHandle* pHandle, LSMessage* message, vo
 
 	LS::Error error;
 	if (!LSMessageReply(pHandle, message, reply.stringify().c_str(), error))
-		qWarning() << error.what();
+		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "error: %s", error.what());
 
 	return true;
 }
@@ -4411,23 +4409,23 @@ gboolean TimePrefsHandler::source_periodic(gpointer userData)
 {
 	if (TimePrefsHandler::s_inst == NULL)
 	{
-		qWarning() << "instance handle is NULL!";
+		PmLogWarning(sysServiceLogContext(), "NULL_HANDLE", 0, "instance handle is NULL!");
 		return FALSE;
 	}
 	int rc = TimePrefsHandler::s_inst->timeoutFunc();
 
 	if (rc == TIMEOUTFN_RESETCYCLE)
 	{
-		qDebug("Repeating timeout cycle");
+		PmLogDebug(sysServiceLogContext(),"Repeating timeout cycle");
 		return TRUE;
 	}
 	else if (rc == TIMEOUTFN_ENDCYCLE)
 	{
-		qDebug("Ending timeout cycle");
+		PmLogDebug(sysServiceLogContext(),"Ending timeout cycle");
 		return FALSE;
 	}
 
-	qWarning("fall through! (rc %d)",rc);
+	PmLogWarning(sysServiceLogContext(), "FALL_THROUGH", 0, "fall through! (rc %d)",rc);
 	return TRUE;		///fall through! should never happen. if it does, repeat the cycle
 }
 
@@ -4437,7 +4435,7 @@ void TimePrefsHandler::source_periodic_destroy(gpointer userData)
 	//tear down the timeout source
 	if (TimePrefsHandler::s_inst == NULL)
 	{
-		 qWarning() << "instance handle is NULL!";
+		 PmLogWarning(sysServiceLogContext(), "NULL_HANDLE", 0, "instance handle is NULL!");
 		return;
 	}
 	TimePrefsHandler::s_inst->timeout_destroy(userData);
@@ -4565,7 +4563,7 @@ void TimePrefsHandler::slotNetworkConnectionStateChanged(bool connected)
 		timev = 86399; //24 hour default (23h.59m.59s actually)
 
 	time_t currTime = currentStamp();
-	qDebug("currTime: %d, lastNtpUpdate: %d, interval: %d",
+	PmLogDebug(sysServiceLogContext(),"currTime: %d, lastNtpUpdate: %d, interval: %d",
 		   (int)currTime, (int)m_lastNtpUpdate, timev);
 	if ((m_lastNtpUpdate > 0) && (time_t)(m_lastNtpUpdate + timev) > currTime)
 		return;
@@ -4600,7 +4598,7 @@ bool TimePrefsHandler::cbTelephonyPlatformQuery(LSHandle* lsHandle, LSMessage *m
 		TimePrefsHandler* th = (TimePrefsHandler*) userData;
 		th->m_nitzTimeZoneAvailable = timeZoneAvailable;
 
-		qDebug("NITZ Time Zone Available: %d", timeZoneAvailable);
+		PmLogDebug(sysServiceLogContext(),"NITZ Time Zone Available: %d", timeZoneAvailable);
 		isSuccess = true;
 	} while(false);
 

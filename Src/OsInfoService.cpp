@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2023 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ void OsInfoService::setServiceHandle(LSHandle* serviceHandle)
 	LS::Error error;
 	if (!LSRegisterCategory(serviceHandle, "/osInfo", s_os_methods, nullptr, nullptr, error.get()))
 	{
-		qCritical() << "Failed in registering osinfo handler method:" << error.what();
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_REGISTER", 0, "Failed in registering osinfo handler method:%s", error.what());
 	}
 }
 
@@ -181,16 +181,18 @@ bool OsInfoService::cbGetOsInformation(LSHandle* lsHandle, LSMessage *message, v
         }
 
         nyx_error_t error = nyx_init();
-        if (NYX_ERROR_NONE != error) {
-            qCritical() << "Failed to inititalize nyx library: " << error;
+        if (NYX_ERROR_NONE != error)
+        {
+            PmLogCritical(sysServiceLogContext(), "FAILED_TO_INITITALIZE", 0, "Failed to inititalize nyx library: %d", error);
             reply = JObject { { "returnValue", false }, { "errorText",
                     "Internal error. Can't initialize nyx" } };
             break;
         }
 
         error = nyx_device_open(NYX_DEVICE_OS_INFO, "Main", &device);
-        if ((NYX_ERROR_NONE != error) || (NULL == device)) {
-            qCritical() << "Failed to get `Main` nyx device: " << error << "";
+        if ((NYX_ERROR_NONE != error) || (NULL == device))
+        {
+            PmLogCritical(sysServiceLogContext(), "FAILED_TO_GET_DEVICE", 0, "Failed to get `Main` nyx device: %d ", error);
             reply = JObject { { "returnValue", false }, { "errorText",
                     "Internal error. Can't open nyx device" } };
             break;
@@ -206,9 +208,9 @@ bool OsInfoService::cbGetOsInformation(LSHandle* lsHandle, LSMessage *message, v
 
             const char *nyx_result = nullptr;
             error = nyx_os_info_query(device, query->second, &nyx_result);
-            if (NYX_ERROR_NONE != error) {
-                qCritical() << "Failed to query nyx. Parameter: "
-                        << param.stringify().c_str() << ". Error: " << error;
+            if (NYX_ERROR_NONE != error)
+            {
+                PmLogCritical(sysServiceLogContext(), "FAILED_TO_QUERY", 0, "Failed to query nyx. Parameter: %s. Error: %d", param.stringify().c_str(), error);
                 reply = JObject { { "returnValue", false }, { "errorText",
                         "Can't get OS parameter: " + param.stringify() } };
                 break;
@@ -219,8 +221,9 @@ bool OsInfoService::cbGetOsInformation(LSHandle* lsHandle, LSMessage *message, v
     } while (false);
 
     LS::Error error;
-    if (!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error)) {
-        qWarning() << "Failed to send LS reply: " << error.what();
+    if(!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error))
+    {
+        PmLogWarning(sysServiceLogContext(), "LS_REPLY_FAIL", 0,  "Failed to send LS reply: %s" , error.what());
     }
 
     if (NULL != device)

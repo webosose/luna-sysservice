@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#ifdef WEBOS_QT
 #include <QtGui/QImageReader>
 #include <QtGui/QImage>
 
 bool readImageWithPrescale(QImageReader& reader, QImage& image, double& prescaleFactor);
-
+#endif //WEBOS_QT
 

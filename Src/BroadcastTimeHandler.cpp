@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2018 LG Electronics, Inc.
+// Copyright (c) 2013-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -121,7 +121,7 @@ namespace {
 
 		pbnjson::JGenerator serializer(NULL);
 		if (!serializer.toString(response, schema, serialized)) {
-			qCritical() << "JGenerator failed";
+			PmLogCritical(sysServiceLogContext(), "JGENERATOR_FAILED", 0, "JGenerator failed");
 			return false;
 		}
 
@@ -129,7 +129,7 @@ namespace {
 		LSErrorInit(&lsError);
 		if (!LSMessageReply(handle, message, serialized.c_str(), &lsError))
 		{
-			qCritical() << "LSMessageReply failed, Error:" << lsError.message;
+			PmLogCritical(sysServiceLogContext(), "LSMESSAGE_REPLY_FAILED", 0, "LSMessageReply failed, Error:%s", lsError.message);
 			LSErrorFree (&lsError);
 			return false;
 		}
@@ -171,7 +171,7 @@ namespace {
 		tm tmLocal;
 		if (!gmtime_r(&local, &tmLocal))
 		{
-			qWarning() << "gmtime() call failed - should never happen";
+			PmLogWarning(sysServiceLogContext(),"GMTIME_CALL_FAILED",0,"gmtime() call failed - should never happen");
 		}
 		else
 		{
@@ -200,7 +200,9 @@ namespace {
 		{
 			if (!broadcastTime.get(adjustedUtc, local))
 			{
-				qWarning() << "Internal logic error (failed to get broadcast time while it is reported avaialble)";
+				PmLogWarning(sysServiceLogContext(),"INTERNAL_LOGIC_ERROR",0,"Internal logic error (failed to get broadcast time while it is reported avaialble)");
+
+
 				adjustedUtc = time(0);
 				local = toLocal(adjustedUtc);
 				systemTimeUsed = true;
@@ -346,7 +348,7 @@ bool TimePrefsHandler::cbGetEffectiveBroadcastTime(LSHandle* handle, LSMessage *
 		bool subscribed = LSSubscriptionAdd(handle, effectiveBroadcastKey, message, &lsError);
 		if (!subscribed)
 		{
-			qCritical() << " failed, Error:" << lsError.message;
+			PmLogCritical(sysServiceLogContext(), "LSSUBSCRIPTIONADD_FAILED", 0, " failed, Error:%s", lsError.message);
 		}
 		LSErrorFree(&lsError);
 		answer.put("subscribed", subscribed);
@@ -362,7 +364,7 @@ void TimePrefsHandler::postBroadcastEffectiveTimeChange()
 	// ignore error (will be reported as one of the reply
 	if (!answerEffectiveBroadcastTime(answer, *this, m_broadcastTime))
 	{
-		qWarning() << "Failed to prepare post answer for getEffectiveBroadcastTime subscription (ignoring)";
+		PmLogWarning(sysServiceLogContext(),"FAILED_TO_POST_ERROR",0,"Failed to prepare post answer for getEffectiveBroadcastTime subscription (ignoring)");
 		return;
 	}
 
@@ -370,7 +372,7 @@ void TimePrefsHandler::postBroadcastEffectiveTimeChange()
 
 	pbnjson::JGenerator serializer(NULL);
 	if (!serializer.toString(answer, schemaGeneric, serialized)) {
-		qCritical() << "JGenerator failed";
+		PmLogCritical(sysServiceLogContext(), "JGENERATOR_FAILED", 0, "JGenerator failed");
 		return;
 	}
 
@@ -378,7 +380,7 @@ void TimePrefsHandler::postBroadcastEffectiveTimeChange()
 	LSErrorInit(&lsError);
 	if(!LSSubscriptionReply(m_serviceHandle, effectiveBroadcastKey, serialized.c_str(), &lsError))
 	{
-		qCritical() << "LSSubscriptionReply failed, Error:" << lsError.message;
+		PmLogCritical(sysServiceLogContext(), "LSSUBSCRIPTIONREPLY_FAILED", 0, "LSSubscriptionReply failed, Error:%s", lsError.message);
 	}
 	LSErrorFree(&lsError);
 }

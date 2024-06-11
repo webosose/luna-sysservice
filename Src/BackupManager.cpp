@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2023 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ void BackupManager::setServiceHandle(LSHandle* serviceHandle)
 	if (!LSRegisterCategory(serviceHandle, "/backup", s_BackupServerMethods,
 		nullptr, nullptr, error.get()))
 	{
-		qCritical() << "Failed to register backup methods: " << error.what();
+		PmLogCritical(sysServiceLogContext(), "LSREGISTER_CATEGORY_FAILED", 0, "Failed to register backup methods: %s", error.what());
 	}
 }
 
@@ -80,14 +80,14 @@ void BackupManager::copyKeysToBackupDb()
 	JValue backupKeysJson = JDomParser::fromFile(BackupManager::s_backupKeylistFilename.c_str());
 
 	if (!backupKeysJson.isArray()) {
-		qWarning () << "file does not contain an array of string keys";
+		PmLogWarning(sysServiceLogContext(), "STRING_KEY_NOT_EXIST",0,"file does not contain an array of string keys");
 		return;
 	}
 
 	std::list<std::string> keylist;
 	for (const JValue key: backupKeysJson.items()) {
 		if (!key.isString()) {
-			qWarning() << "Invalid key (skipping)";
+			PmLogWarning(sysServiceLogContext(),"INVALID_KEY",0,"Invalid key (skipping)");
 			continue;
 		}
 
@@ -186,7 +186,7 @@ bool BackupManager::preBackupCallback( LSHandle* lshandle, LSMessage *message, v
 {
 	PMLOG_TRACE("%s:starting",__FUNCTION__);
 	if (LSMessageIsHubErrorMessage(message)) {  // returns false if message is NULL
-		qWarning("The message received is an error message from the hub");
+		PmLogWarning(sysServiceLogContext(),"HUB_ERROR_MESSAGE",0,"The message received is an error message from the hub");
 		return true;
 	}
 
@@ -210,7 +210,7 @@ bool BackupManager::preBackupCallback( LSHandle* lshandle, LSMessage *message, v
 	}
 	else
 	{
-		qDebug() << "No tempDir specified in preBackup message";
+		PmLogDebug(sysServiceLogContext(),"No tempDir specified in preBackup message");
 		tempDir = PrefsDb::s_prefsPath;
 		myTmp = true;
 	}
@@ -227,7 +227,7 @@ bool BackupManager::preBackupCallback( LSHandle* lshandle, LSMessage *message, v
 	if (!self->m_p_backupDb)
 	{
 		//failed to create temp db
-		qWarning() << "unable to create a temporary backup db at [" << dbfile.c_str() << "]...aborting!";
+		PmLogWarning(sysServiceLogContext(),"DB_ERROR",0,"unable to create a temporary backup db at [%s]...aborting!",dbfile.c_str());
 		return self->sendPreBackupResponse(lshandle,message,std::list<std::string>());
 	}
 
@@ -238,7 +238,7 @@ bool BackupManager::preBackupCallback( LSHandle* lshandle, LSMessage *message, v
 
 	if (!self->m_doBackupFiles)
 	{
-		qWarning() << "opted not to do a backup at this time due to doBackup internal var";
+		PmLogWarning(sysServiceLogContext(),"NO_BACKUP",0,"opted not to do a backup at this time due to doBackup internal var");
 		return self->sendPreBackupResponse(lshandle,message,std::list<std::string>());
 	}
 
@@ -305,19 +305,18 @@ bool BackupManager::postRestoreCallback( LSHandle* lshandle, LSMessage *message,
 	for (const JValue &file: files.items())
 	{
 		std::string path = file.isString() ? file.asString() : "";
-		qDebug("array file: %s", path.c_str());
+		PmLogDebug(sysServiceLogContext(),"array file: %s", path.c_str());
 
 		if (path.empty())
 		{
-			qWarning() << "array object is a file path that is empty (skipping)";
+			PmLogWarning(sysServiceLogContext(),"FILE_PATH_EMPTY",0,"array object is a file path that is empty (skipping)");
 			continue;
 		}
 		if (path[0] != '/')
 		{
 			//not an absolute path apparently...try taking on tempdir
 			path = tempDir + std::string("/") + path;
-			qWarning() << "array object  is a file path that seems to be relative..."
-						  "trying to absolute-ize it by adding tempDir, like so: [" << path.c_str() << "]";
+			PmLogWarning(sysServiceLogContext(),"NOT_ABSOLUTE_FILE_PATH",0,"array object  is a file path that seems to be relative...trying to absolute-ize it by adding tempDir, like so: [%s]",path.c_str());
 		}
 
 		///PROCESS SPECIFIC FILES HERE....
@@ -336,7 +335,7 @@ bool BackupManager::postRestoreCallback( LSHandle* lshandle, LSMessage *message,
 			int rc = PrefsDb::instance()->merge(path);
 			if (rc == 0)
 			{
-				qWarning() << "merge() from [" << path.c_str() << "] didn't merge anything...could be an error or just an empty backup db";
+				PmLogWarning(sysServiceLogContext(),"ERROR_OR_EMPTY_BACKUP",0,"merge() from [%s] didn't merge anything...could be an error or just an empty backup db",path.c_str());
 			}
 		}
 	}
@@ -373,15 +372,15 @@ bool BackupManager::sendPreBackupResponse(LSHandle* lshandle, LSMessage *message
 	}
 	else
 	{
-		qWarning() << "opted not to do a backup at this time due to doBackup internal var";
+		PmLogWarning(sysServiceLogContext(),"NO_BACKUP",0,"opted not to do a backup at this time due to doBackup internal var");
 	}
 	response.put("files", files);
 
-	qDebug ("Sending response to preBackupCallback: %s", response.stringify().c_str());
+	PmLogDebug(sysServiceLogContext(),"Sending response to preBackupCallback: %s", response.stringify().c_str());
 
 	LS::Error error;
 	if (!LSMessageReply (lshandle, message, response.stringify().c_str(), error)) {
-		qWarning() << "Can't send reply to preBackupCallback error:" << error.what();
+		PmLogWarning(sysServiceLogContext(),"PRE_BACKUP_CALLBACK_ERROR",0,"Can't send reply to preBackupCallback error: %s",error.what());
 	}
 
 	return true;
@@ -389,11 +388,11 @@ bool BackupManager::sendPreBackupResponse(LSHandle* lshandle, LSMessage *message
 
 bool BackupManager::sendPostRestoreResponse(LSHandle* lshandle, LSMessage *message)
 {
-	qDebug ("Sending response to postRestoreCallback: %s", R"({"returnValue": true})");
+	PmLogDebug(sysServiceLogContext(),"Sending response to postRestoreCallback: %s", R"({"returnValue": true})");
 
 	LS::Error error;
 	if (!LSMessageReply (lshandle, message, R"({"returnValue": true})", error)) {
-		qWarning() << "Can't send reply to postRestoreCallback error:" << error.what();
+		PmLogWarning(sysServiceLogContext(),"POST_RESTORE_CALLBACK_ERROR",0,"Can't send reply to postRestoreCallback error: %s",error.what());
 	}
 
 	return true;

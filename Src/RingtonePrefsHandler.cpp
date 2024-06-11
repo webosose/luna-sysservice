@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ void RingtonePrefsHandler::init() {
 			NULL, NULL, &lsError);
 	if (!result) {
 		//luna_critical(s_logChannel, "Failed in registering ringtone handler method: %s", lsError.message);
-		qCritical() << "Failed in registering ringtone handler method:" << lsError.message;
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_REGISTER", 0, "Failed in registering ringtone handler method:%s", lsError.message);
 		LSErrorFree(&lsError);
 		return;
 	}
@@ -77,7 +77,7 @@ void RingtonePrefsHandler::init() {
 	result = LSCategorySetData(m_serviceHandle, "/ringtone", this, &lsError);
 	if (!result) {
 		//luna_critical(s_logChannel, "Failed in LSCategorySetData: %s", lsError.message);
-		qCritical() << "Failed in LSCategorySetData:" << lsError.message;
+		PmLogCritical(sysServiceLogContext(), "LSCATEGORYSETDATA_FAILED", 0, "Failed in LSCategorySetData:%s", lsError.message);
 		LSErrorFree(&lsError);
 		return;
 	}
@@ -351,7 +351,7 @@ static bool cbDeleteRingtone(LSHandle* lsHandle, LSMessage *message, void *user_
 	JObject response {{"returnValue", success}};
 	if (!success) {
 		response.put("errorText", errorText);
-		qWarning() << errorText.c_str();
+		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "error: %s", errorText.c_str());
 	}
 
 	LS::Error error;

@@ -11,12 +11,10 @@ SOURCES := \
 	PrefsFactory.cpp \
 	TimePrefsHandler.cpp \
 	UrlRep.cpp \
-	WallpaperPrefsHandler.cpp \
 	BuildInfoHandler.cpp \
 	Utils.cpp \
 	SystemRestore.cpp \
 	RingtonePrefsHandler.cpp \
-	ImageServices.cpp \
 	Mainloop.cpp \
 	TimeZoneService.cpp \
 	TzParser.cpp \

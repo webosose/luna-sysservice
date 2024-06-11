@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2023 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ void TimeZoneService::setServiceHandle(LSHandle* serviceHandle)
 	LS::Error error;
 	if (!LSRegisterCategory(serviceHandle, "/timezone", s_methods, nullptr, nullptr, error))
 	{
-		qCritical() << "Failed in registering timezone handler method:" << error.what();
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_REGISTER", 0, "Failed in registering timezone handler method:%s", error.what());
 	}
 }
 
@@ -1082,9 +1082,7 @@ void TimeZoneService::updateEasDateDayOfMonth(TimeZoneService::EasSystemTime& ti
         }
     }
 
-	qDebug() << "Updated DST start week: " << week
-		<< " day: " << time.day
-		<< " Of Year: " << year;
+	PmLogDebug(sysServiceLogContext(),"Updated DST start week:%d day:%d  of the year:%d", week,time.day,year);
 }
 
 int TimeZoneService::compareEasRules(TimeZoneService::EasSystemTime& startTime,
@@ -1124,7 +1122,7 @@ int TimeZoneService::compareEasRules(TimeZoneService::EasSystemTime& startTime,
 
 	int duration = ::timegm(&tzDSTEndTime) - ::timegm(&tzDSTStartTime);
 
-	qDebug() << "Comapre DST duration :" << diffBias << " : " << duration;
+	PmLogDebug(sysServiceLogContext(),"Comapre DST duration : %d:%d", diffBias,duration);
 
 	// works as like no DST
 	if(duration == 0)

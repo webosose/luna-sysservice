@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2022 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -102,7 +102,7 @@ static void sendSignals(LSHandle* serviceHandle)
 		             R"({"isEnabled": true, "bypassFirstUse": false})",
 		             nullptr, nullptr, nullptr, error)))
 		{
-			qCritical() << "failed to force novacom to On state";
+			PmLogCritical(sysServiceLogContext(), "FAILED_TO_FORCE_NOVACOM", 0, "failed to force novacom to On state");
 		}
 	}
 
@@ -111,7 +111,7 @@ static void sendSignals(LSHandle* serviceHandle)
 	            cbComPalmImage2Status, nullptr, nullptr, error))
 	{
 		//non-fatal
-		qWarning() << error.what();
+		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "error: %s", error.what());
 	}
 
 	// register for storage daemon signals
@@ -119,35 +119,35 @@ static void sendSignals(LSHandle* serviceHandle)
 	            R"({"category": "/storaged", "method": "MSMAvail"})",
 	            SystemRestore::msmAvailCallback, nullptr, nullptr, error))
 	{
-		qCritical() << error.what();
+		PmLogCritical(sysServiceLogContext(), "LSCALL_ADDMATCH_FAILED", 0, "%s",error.what());
 	}
 
 	if (!LSCall(serviceHandle, "luna://com.webos.service.bus/signal/addmatch",
 	            R"({"category": "/storaged", "method": "MSMProgress"})",
 	            SystemRestore::msmProgressCallback, nullptr, nullptr, error))
 	{
-		qCritical() << error.what();
+		PmLogCritical(sysServiceLogContext(), "LSCALL_ADDMATCH_FAILED", 0, "%s", error.what());
 	}
 
 	if (!LSCall(serviceHandle, "luna://com.webos.service.bus/signal/addmatch",
 	            R"({"category": "/storaged", "method": "MSMEntry"})",
 	            SystemRestore::msmEntryCallback, nullptr, nullptr, error))
 	{
-		qCritical() << error.what();
+		PmLogCritical(sysServiceLogContext(), "LSCALL_ADDMATCH_FAILED", 0, "%s", error.what());
 	}
 
 	if (!LSCall(serviceHandle, "luna://com.webos.service.bus/signal/addmatch",
 	            R"({"category": "/storaged", "method": "MSMFscking"})",
 	            SystemRestore::msmFsckingCallback, nullptr, nullptr, error))
 	{
-		qCritical() << error.what();
+		PmLogCritical(sysServiceLogContext(), "LSCALL_ADDMATCH_FAILED", 0, "%s", error.what());
 	}
 
 	if (!LSCall(serviceHandle, "luna://com.webos.service.bus/signal/addmatch",
 	            R"({"category": "/storaged", "method": "PartitionAvail"})",
 	            SystemRestore::msmPartitionAvailCallback, nullptr, nullptr, error))
 	{
-		qCritical() << error.what();
+		PmLogCritical(sysServiceLogContext(), "LSCALL_ADDMATCH_FAILED", 0, "%s", error.what());
 	}
 }
 
@@ -198,7 +198,9 @@ int main(int argc, char ** argv)
 
 	g_mainloop.reset(g_main_loop_new(nullptr, false));
 
+#ifdef WEBOS_QT
 	qInstallMessageHandler(outputQtMessages);
+#endif //WEBOS_QT
 
 	Settings *settings = Settings::instance();
 	if (!settings->parseCommandlineOptions(argc, argv))
@@ -227,13 +229,13 @@ int main(int argc, char ** argv)
 	// Register the service
 	if (!LSRegister("com.webos.service.systemservice", &serviceHandle, error))
 	{
-		qCritical() << "Failed to register service com.webos.service.systemservice: " << error.what();
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_REGISTER_SERVICE", 0, "Failed to register service com.webos.service.systemservice: %s", error.what());
 		return 1;
 	}
 
 	if (!LSGmainAttach(serviceHandle, g_mainloop.get(), error))
 	{
-		qCritical() << "Failed to attach service handle to main loop: " << error.what();
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_ATTACH_SERVICE", 0, "Failed to attach service handle to main loop: %s", error.what());
 		return 1;
 	}
 
@@ -251,7 +253,7 @@ int main(int argc, char ** argv)
 			R"({"keys":["localeInfo"],"subscribe":true})", TimePrefsHandler::cbLocaleHandler,
 				nullptr, nullptr, error))
 	{
-		qDebug() << "could not get locale info: " << error.what();
+		PmLogDebug(sysServiceLogContext(),"could not get locale info: %s", error.what());
 		return -1;
 	}
 

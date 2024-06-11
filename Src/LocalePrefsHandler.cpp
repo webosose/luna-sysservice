@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2018 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ bool LocalePrefsHandler::validateLocale(const JValue &value)
 	JValue label = value["languageCode"];
 	if (!label.isString()) {
 		//luna_warn(s_logChannel, "Failed to find param languageCode");
-		qWarning() << "Failed to find param languageCode";
+		PmLogWarning(sysServiceLogContext(), "PARAM_NOT_FOUND", 0, "Failed to find param languageCode");
 	}
 	else {
 		languageCode = label.asString();
@@ -67,7 +67,7 @@ bool LocalePrefsHandler::validateLocale(const JValue &value)
 	label = value["countryCode"];
 	if (!label.isString()) {
 		//luna_warn(s_logChannel, "Failed to find param countryCode");
-		qWarning() << "Failed to find param countryCode";
+		PmLogWarning(sysServiceLogContext(), "PARAM_NOT_FOUND", 0, "Failed to find param countryCode");
 	}
 	else {
 		countryCode = label.asString();
@@ -113,7 +113,7 @@ bool LocalePrefsHandler::validateRegion(const JValue &value)
 	JValue label = value["countryCode"];
 	if (!label.isString()) {
 		//luna_warn(s_logChannel, "Failed to find param regionCode");
-		qWarning() << "Failed to find param regionCode";
+		PmLogWarning(sysServiceLogContext(), "PARAM_NOT_FOUND", 0, "Failed to find param regionCode");
 	}
 	else {
 		regionCode = label.asString();
@@ -289,13 +289,13 @@ void LocalePrefsHandler::readLocaleFile()
 	if (!root.isObject())
 		root = JDomParser::fromFile(s_defaultLocaleFile);
 	if (!root.isObject()) {
-		qCritical() << "Failed to load locale files: [" << s_custLocaleFile << "] nor [" << s_defaultLocaleFile << "]";
+		PmLogCritical(sysServiceLogContext(), "JDOMPARSER_FAILED", 0, "Failed to load locale files: [%s] nor [%s]", s_custLocaleFile, s_defaultLocaleFile);
 		return;
 	}
 
 	JValue locale = root["locale"];
 	if (!locale.isArray()) {
-		qCritical() << "Failed to get locale array from locale file";
+		PmLogCritical(sysServiceLogContext(), "JVALUE_FAILED", 0, "Failed to get locale array from locale file");
 		return;
 	}
 
@@ -339,13 +339,13 @@ void LocalePrefsHandler::readRegionFile()
 	if (!root.isObject())
 		root = JDomParser::fromFile(s_defaultRegionFile);
 	if (!root.isObject()) {
-		qCritical() << "Failed to load region files: [" << s_custRegionFile << "] nor [" << s_defaultRegionFile << "]";
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_LOAD_REGION", 0, "Failed to load region files: [%s] nor [%s]", s_custRegionFile, s_defaultRegionFile);
 		return;
 	}
 
 	JValue regionArray = root["region"];
 	if (!regionArray.isArray()) {
-		qCritical() << "Failed to get region array from region file";
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_LOAD_REGION", 0, "Failed to get region array from region file");
 		return;
 	}
 

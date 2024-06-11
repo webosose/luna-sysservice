@@ -11,11 +11,6 @@
         "com.webos.service.systemservice/ringtone/addRingtone",
         "com.webos.service.systemservice/ringtone/deleteRingtone",
         "com.webos.service.systemservice/setPreferences",
-        "com.webos.service.systemservice/wallpaper/convert",
-        "com.webos.service.systemservice/wallpaper/deleteWallpaper",
-        "com.webos.service.systemservice/wallpaper/importWallpaper",
-        "com.webos.service.systemservice/wallpaper/info",
-        "com.webos.service.systemservice/wallpaper/refresh",
         "com.webos.service.alarm/set",
         "com.webos.service.alarm/clear"
         ],

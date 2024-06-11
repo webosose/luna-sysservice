@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2023 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -126,7 +126,7 @@ bool PrefsDb::setPref(const std::string& key, const std::string& value)
 	int ret = sqlite3_exec(m_prefsDb, queryStr, NULL, NULL, NULL);
 
 	if (ret) {
-		qWarning("Failed to execute query for key %s", key.c_str());
+		PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "Failed to execute query for key %s", key.c_str());
 
 		sqlite3_free(queryStr);
 		return false;
@@ -134,7 +134,7 @@ bool PrefsDb::setPref(const std::string& key, const std::string& value)
 
 	sqlite3_free(queryStr);
 
-	qDebug("set ( [%s] , [---, length %zu] )", key.c_str(), value.size());
+	PmLogDebug(sysServiceLogContext(),"set ( [%s] , [---, length %zu] )", key.c_str(), value.size());
 	return true;
 }
 
@@ -153,7 +153,7 @@ std::string PrefsDb::getPref(const std::string& key)
 		goto Done;
 
 	if (sqlite3_prepare(m_prefsDb, queryStr, -1, &statement, &tail)) {
-		qWarning("Failed to prepare sql statement: %s", queryStr);
+		PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "Failed to prepare sql statement: %s", queryStr);
 		goto Done;
 	}
 
@@ -189,7 +189,7 @@ bool PrefsDb::getPref(const std::string& key,std::string& r_val)
 		goto Done;
 
 	if (sqlite3_prepare(m_prefsDb, queryStr, -1, &statement, &tail)) {
-		qWarning("Failed to prepare sql statement: %s", queryStr);
+		PmLogWarning(sysServiceLogContext(),"SQL_ERROR",0,"Failed to prepare sql statement: %s", queryStr);
 		goto Done;
 	}
 
@@ -227,7 +227,7 @@ std::map<std::string,std::string> PrefsDb::getAllPrefs()
 
 	ret = sqlite3_prepare(m_prefsDb, query.c_str(), -1, &statement, &tail);
 	if (ret) {
-		qWarning() << "Failed to prepare sql statement";
+		PmLogWarning(sysServiceLogContext(),"SQL_ERROR",0,"Failed to prepare sql statement");
 		goto Done;
 	}
 
@@ -264,18 +264,18 @@ int PrefsDb::merge(const std::string& sourceDbFilename,bool overwriteSameKeys)
 		bool sqlOk = runSqlCommand(attachCmd.c_str());
 		if (!sqlOk)
 		{
-			qWarning() << "Failed to run ATTACH cmd to attach [" << sourceDbFilename.c_str() << "] to this db";
+			PmLogWarning(sysServiceLogContext(),"SQL_ERROR",0,"Failed to run ATTACH cmd to attach [%s] to this db",sourceDbFilename.c_str());
 			return 0;
 		}
 		std::string mergeCmd = std::string("INSERT INTO main.Preferences SELECT * FROM backupDb.Preferences;");
 		sqlOk = runSqlCommand(mergeCmd.c_str());
 		if (!sqlOk)
 		{
-			qWarning() << "Failed to run INSERT command to merge [" << sourceDbFilename.c_str() << "] into this db";
+			PmLogWarning(sysServiceLogContext(),"SQL_ERROR",0,"Failed to run INSERT command to merge [%s] into this db",sourceDbFilename.c_str());
 		}
 		else
 		{
-			qDebug("successfully merged [%s] into this db", sourceDbFilename.c_str());
+			PmLogDebug(sysServiceLogContext(),"successfully merged [%s] into this db", sourceDbFilename.c_str());
 		}
 
 		closePrefsDb();
@@ -283,7 +283,7 @@ int PrefsDb::merge(const std::string& sourceDbFilename,bool overwriteSameKeys)
 	}
 	else
 	{
-		qWarning() << "Non-destructive merge not yet implemented! Nothing merged";
+		PmLogWarning(sysServiceLogContext(),"MERGE_ERROR",0,"Non-destructive merge not yet implemented! Nothing merged");
 		return 0;
 	}
 
@@ -300,7 +300,7 @@ int PrefsDb::copyKeys(PrefsDb * p_sourceDb,const std::list<std::string>& keys,bo
 	if (p_sourceDb->m_prefsDb == 0)
 		return 0;
 
-	qDebug("source DB file: [%s] , target DB file: [%s] , overwriteSameKeys = %s",
+	PmLogDebug(sysServiceLogContext(),"source DB file: [%s] , target DB file: [%s] , overwriteSameKeys = %s",
 		p_sourceDb->m_dbFilename.c_str(), m_dbFilename.c_str(),(overwriteSameKeys ? "YES" : "NO"));
 	int n=0;
 	for (std::list<std::string>::const_iterator it = keys.begin(); it != keys.end();++it)
@@ -335,7 +335,7 @@ sqlite3_stmt* PrefsDb::runSqlQuery(const std::string& queryStr)
 
 	ret = sqlite3_prepare(m_prefsDb, queryStr.c_str(), -1, &statement, &tail);
 	if (ret != SQLITE_OK) {
-		qWarning("Failed to prepare sql statement");
+		PmLogWarning(sysServiceLogContext(),"SQL_ERROR",0,"Failed to prepare sql statement");
 		if (statement)
 		{
 			sqlite3_finalize(statement);
@@ -358,7 +358,7 @@ bool PrefsDb::runSqlCommand(const std::string& cmdStr)
 
 	ret = sqlite3_exec(m_prefsDb, queryStr, NULL, NULL, &pErrMsg);
 	if (ret) {
-		qWarning() << "Failed to execute cmd [" << queryStr << "] - extended error: [" << (pErrMsg ? pErrMsg : "<none>") << "]";
+		PmLogWarning(sysServiceLogContext(),"SQL_ERROR",0,"Failed to execute cmd [%s] - extended error: [%s]",queryStr, pErrMsg ? pErrMsg : "<none>");
 		rc = false;
 	}
 	else
@@ -399,7 +399,7 @@ std::map<std::string, std::string> PrefsDb::getPrefs(const std::list<std::string
 
 	ret = sqlite3_prepare(m_prefsDb, query.c_str(), -1, &statement, &tail);
 	if (ret) {
-		qWarning() << "Failed to prepare sql statement";
+		PmLogWarning(sysServiceLogContext(),"SQL_ERROR",0,"Failed to prepare sql statement");
 		goto Done;
 	}
 
@@ -436,13 +436,13 @@ void PrefsDb::openPrefsDb()
 
 	int ret = sqlite3_open(m_dbFilename.c_str(), &m_prefsDb);
 	if (ret) {
-		qWarning() << "Failed to open preferences db [" << m_dbFilename.c_str() << "]";
+		PmLogWarning(sysServiceLogContext(),"DB_OPEN_ERROR",0,"Failed to open preferences db [%s]",m_dbFilename.c_str());
 		return;
 	}
 
 	if (!checkTableConsistency()) {
 
-		qWarning() << "Failed to create Preferences table";
+		PmLogWarning(sysServiceLogContext(),"TABLE_CREATE_ERROR",0,"Failed to create Preferences table");
 		sqlite3_close(m_prefsDb);
 		m_prefsDb = 0;
 		return;
@@ -453,7 +453,7 @@ void PrefsDb::openPrefsDb()
 					   "(key   TEXT NOT NULL ON CONFLICT FAIL UNIQUE ON CONFLICT REPLACE, "
 					   " value TEXT);", NULL, NULL, NULL);
 	if (ret) {
-		qWarning() << "Failed to create Preferences table";
+		PmLogWarning(sysServiceLogContext(),"TABLE_CREATE_ERROR",0,"Failed to create Preferences table");
 		sqlite3_close(m_prefsDb);
 		m_prefsDb = 0;
 		return;
@@ -481,15 +481,14 @@ bool PrefsDb::checkTableConsistency()
 
 	if (!integrityCheckDb())
 	{
-		qCritical("integrity check failed on prefs db and it cannot be recreated");
+		PmLogCritical(sysServiceLogContext(), "INTEGRITY_CHECK_FAILED", 0, "integrity check failed on prefs db and it cannot be recreated");
 		return false;
 	}
 
 	query = "SELECT value FROM Preferences WHERE key='databaseVersion'";
 	ret = sqlite3_prepare(m_prefsDb, query.c_str(), -1, &statement, &tail);
 	if (ret) {
-		qWarning("Failed to prepare sql statement: %s (%s)",
-					  query.c_str(), sqlite3_errmsg(m_prefsDb));
+		PmLogWarning(sysServiceLogContext(),"SQL_ERROR",0,"Failed to prepare sql statement: %s (%s)",query.c_str(),sqlite3_errmsg(m_prefsDb));
 		sqlite3_finalize(statement);
 		goto Recreate;
 	}
@@ -523,14 +522,14 @@ Recreate:
 					   "(key   TEXT NOT NULL ON CONFLICT FAIL UNIQUE ON CONFLICT REPLACE, "
 					   " value TEXT);", NULL, NULL, NULL);
 	if (ret) {
-		qWarning() << "Failed to create Preferences table";
+		PmLogWarning(sysServiceLogContext(),"TABLE_CREATE_ERROR",0,"Failed to create Preferences table");
 		return false;
 	}
 
 	ret = sqlite3_exec(m_prefsDb, "INSERT INTO Preferences VALUES ('databaseVersion', '1.0')",
 					   NULL, NULL, NULL);
 	if (ret) {
-		qWarning() << "Failed to create Preferences table";
+		PmLogWarning(sysServiceLogContext(),"TABLE_CREATE_ERROR",0,"Failed to create Preferences table");
 		return false;
 	}
 
@@ -556,7 +555,7 @@ bool PrefsDb::integrityCheckDb()
 
 	ret = sqlite3_prepare(m_prefsDb, "PRAGMA integrity_check", -1, &statement, &tail);
 	if (ret) {
-		qCritical() << "Failed to prepare sql statement for integrity_check";
+		PmLogCritical(sysServiceLogContext(), "SQL_PREPARE_FAILED", 0, "Failed to prepare sql statement for integrity_check");
 		goto CorruptDb;
 	}
 
@@ -572,20 +571,20 @@ bool PrefsDb::integrityCheckDb()
 	if (!integrityOk)
 		goto CorruptDb;
 
-	qDebug("Integrity check for database passed");
+	PmLogDebug(sysServiceLogContext(),"Integrity check for database passed");
 
 	return true;
 
 CorruptDb:
 
-	qCritical() << "integrity check failed. recreating database";
+	PmLogCritical(sysServiceLogContext(), "INTEGRITY_CHECK_FAILED", 0, "integrity check failed. recreating database");
 
 	sqlite3_close(m_prefsDb);
 	unlink(m_dbFilename.c_str());
 
 	ret = sqlite3_open_v2 (m_dbFilename.c_str(), &m_prefsDb, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
 	if (ret) {
-		qCritical() << "Failed to re-open prefs db at [" << m_dbFilename.c_str() << "]";
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_OPEN_DB", 0, "Failed to re-open prefs db at [%s]", m_dbFilename.c_str());
 		return false;
 	}
 
@@ -596,13 +595,13 @@ void PrefsDb::synchronizeDefaults() {
 
 	JValue root = JDomParser::fromFile(s_defaultPrefsFile);
 	if (!root.isObject()) {
-		qWarning() << "Failed to load json from the default prefs file:" << s_defaultPrefsFile << ". " << root.errorString().c_str();
+		PmLogWarning(sysServiceLogContext(),"LOAD_JSON_FAILED",0,"Failed to load json from the default prefs file: %s . %s",s_defaultPrefsFile,root.errorString().c_str());
 		return;
 	}
 
 	JValue prefs = root["preferences"];
 	if (!prefs.isObject()) {
-		qWarning() << "Failed to get valid preferences entry from file";
+		PmLogWarning(sysServiceLogContext(), "INVALID_PREFERENCES", 0, "Failed to get valid preferences entry from file");
 		return;
 	}
 
@@ -621,7 +620,7 @@ void PrefsDb::synchronizeDefaults() {
 													  key.c_str(), p_cDbv.c_str());
 
 			if (sqlite3_exec(m_prefsDb, queryStr.get(), NULL, NULL, NULL)) {
-				qWarning() << "Failed to execute query:" << queryStr.get();
+				PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "Failed to execute query: %s",queryStr.get());
 			}
 		}
 	}
@@ -631,13 +630,13 @@ void PrefsDb::synchronizePlatformDefaults() {
 
 	JValue root = JDomParser::fromFile(s_defaultPlatformPrefsFile);
 	if (!root.isObject()) {
-		qWarning() << "Failed to load json from the default platform prefs file: " << s_defaultPlatformPrefsFile;
+		PmLogWarning(sysServiceLogContext(),"LOAD_JSON_FAILED",0,"Failed to load json from the default platform prefs file: %s",s_defaultPlatformPrefsFile);
 		return;
 	}
 
 	JValue prefs = root["preferences"];
 	if (!prefs.isObject()) {
-		qWarning() << "Failed to get valid preferences entry from file";
+		PmLogWarning(sysServiceLogContext(), "INVALID_PREFERENCES", 0, "Failed to get valid preferences entry from file");
 		return;
 	}
 
@@ -659,7 +658,7 @@ void PrefsDb::synchronizePlatformDefaults() {
 													  key.c_str(), p_cDbv.c_str());
 
 			if (sqlite3_exec(m_prefsDb, queryStr.get(), NULL, NULL, NULL)) {
-				qWarning() << "Failed to execute query:" << queryStr.get();
+				PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "Failed to execute query:%s",queryStr.get());
 			}
 		}
 	}
@@ -669,13 +668,13 @@ void PrefsDb::synchronizeCustomerCareInfo() {
 
 	JValue root = JDomParser::fromFile(s_custCareNumberFile);
 	if (!root.isObject()) {
-		qWarning() << "Failed to load json from the customer care file: " << s_custCareNumberFile;
+		PmLogWarning(sysServiceLogContext(), "LOAD_JSON_ERROR", 0, "Failed to load json from the customer care file: %s", s_custCareNumberFile);
 		return;
 	}
 
 	JValue prefs = root["preferences"];
 	if (!prefs.isObject()) {
-		qWarning() << "Failed to get valid preferences entry from file";
+		PmLogWarning(sysServiceLogContext(), "INVALID_PREFERENCES", 0, "Failed to get valid preferences entry from file");
 		return;
 	}
 
@@ -696,7 +695,7 @@ void PrefsDb::synchronizeCustomerCareInfo() {
 											  key.c_str(), p_cDbv.c_str());
 
 			if (sqlite3_exec(m_prefsDb, queryStr.get(), NULL, NULL, NULL)) {
-				qWarning() << "Failed to execute query:" << queryStr.get();
+				PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "Failed to execute query: %s", queryStr.get());
 			}
 		}
 		else if (cv != p_cDbv) {
@@ -710,14 +709,13 @@ void PrefsDb::updateWithCustomizationPrefOverrides() {
 
 	JValue root = JDomParser::fromFile(s_customizationOverridePrefsFile);
 	if (!root.isObject()) {
-		qWarning() << "Failed to load json from the customization's prefs override file: "
-				   << s_customizationOverridePrefsFile;
+		PmLogWarning(sysServiceLogContext(), "LOAD_JSON_FAILED", 0, "Failed to load json from the customization's prefs override file:%s", s_customizationOverridePrefsFile);
 		return;
 	}
 
 	JValue prefs = root["preferences"];
 	if (!prefs.isObject()) {
-		qWarning() << "Failed to get valid preferences entry from file";
+		PmLogWarning(sysServiceLogContext(), "INVALID_PREFERENCES", 0, "Failed to get valid preferences entry from file");
 		return;
 	}
 
@@ -732,7 +730,7 @@ void PrefsDb::updateWithCustomizationPrefOverrides() {
 										  pref.second.asString().c_str());
 
 		if (sqlite3_exec(m_prefsDb, queryStr.get(), NULL, NULL, NULL)) {
-			qWarning() << "Failed to execute query:" << queryStr.get();
+			PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "Failed to execute query: %s", queryStr.get());
 		}
 	}
 }
@@ -747,15 +745,14 @@ void PrefsDb::loadDefaultPrefs() {
 
 	JValue root = JDomParser::fromFile(s_defaultPrefsFile);
 	if (!root.isObject()) {
-		qWarning() << "Failed to load json from the default prefs file: "
-				   << s_defaultPrefsFile;
+		PmLogWarning(sysServiceLogContext(), "LOAD_JSON_FAILED", 0, "Failed to load json from the default prefs file: %s", s_defaultPrefsFile);
 		goto Stage1a;
 	}
 
 	{
 		JValue prefs = root["preferences"];
 		if (!prefs.isObject()) {
-			qWarning() << "Failed to get valid preferences entry from file";
+			PmLogWarning(sysServiceLogContext(), "INVALID_PREFERENCES", 0, "Failed to get valid preferences entry from file");
 			goto Stage1a;
 		}
 
@@ -767,7 +764,7 @@ void PrefsDb::loadDefaultPrefs() {
 									   pref.second.asString().c_str());
 
 			if (sqlite3_exec(m_prefsDb, queryStr.get(), NULL, NULL, NULL)) {
-				qWarning() << "Failed to execute query:" << queryStr.get();
+				PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "Failed to execute query: %s", queryStr.get());
 			}
 		}
 	}
@@ -780,14 +777,13 @@ Stage1a:
 							   s_DBNEWTOKEN[0],s_DBNEWTOKEN[1]);
 
 	if (sqlite3_exec(m_prefsDb, queryStr.get(), NULL, NULL, NULL)) {
-		qWarning() << "Failed to execute query:" << queryStr.get();
+		PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "Failed to execute query: %s", queryStr.get());
 	}
 
 	//customer care number also...this is in a separate file
 	root = JDomParser::fromFile(s_custCareNumberFile);
 	if (!root.isObject()) {
-		qWarning() << "Failed to load json from the customer care # file: "
-				   << s_custCareNumberFile;
+		PmLogWarning(sysServiceLogContext(), "LOAD_JSON_FAILED", 0, "Failed to load json from the customer care # file: %s", s_custCareNumberFile);
 		goto Stage3;
 	}
 
@@ -801,11 +797,11 @@ Stage1a:
 								   pref.second.asString().c_str());
 
 		if (sqlite3_exec(m_prefsDb, queryStr.get(), NULL, NULL, NULL)) {
-			qWarning() << "Failed to execute query:" << queryStr.get();
+			PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "Failed to execute query: %s", queryStr.get());
 			continue;
 		}
 
-		qDebug("loaded key %s with value %s", pref.first.asString().c_str(), pref.second.asString().c_str());
+		PmLogDebug(sysServiceLogContext(),"loaded key %s with value %s", pref.first.asString().c_str(), pref.second.asString().c_str());
 	}
 
 Stage3:
@@ -815,7 +811,7 @@ Stage3:
 
 	int ret = sqlite3_exec(m_prefsDb, queryStr.get(), NULL, NULL, NULL);
 	if (ret) {
-		qWarning() << "[Stage 3] Failed to execute query:" << queryStr.get();
+		PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "[Stage 3] Failed to execute query: %s" , queryStr.get());
 	}
 
 	queryStr = g_strdup_printf("INSERT INTO Preferences "
@@ -824,7 +820,7 @@ Stage3:
 
 	ret = sqlite3_exec(m_prefsDb, queryStr.get(), NULL, NULL, NULL);
 	if (ret) {
-		qWarning() << "[Stage 3] Failed to execute query:" << queryStr.get();
+		PmLogWarning(sysServiceLogContext(), "SQL_ERROR", 0, "[Stage 3] Failed to execute query: %s" , queryStr.get());
 	}
 
 	//back up the defaults for certain prefs
@@ -838,15 +834,14 @@ void PrefsDb::loadDefaultPlatformPrefs() {
 
 	JValue root = JDomParser::fromFile(s_defaultPlatformPrefsFile);
 	if (!root.isObject()) {
-		qWarning() << "Failed to load json from the platform default prefs file: "
-				   << s_defaultPrefsFile;
+		PmLogWarning(sysServiceLogContext(), "LOAD_JSON_FAILED", 0, "Failed to load json from the platform default prefs file: %s", s_defaultPrefsFile);
 		return;
 	}
 
 	do {
 		JValue prefs = root["preferences"];
 		if (!prefs.isObject()) {
-			qWarning() << "Failed to get valid preferences entry from file";
+			PmLogWarning(sysServiceLogContext(), "INVALID_PREFERENCES", 0, "Failed to get valid preferences entry from file");
 			break;
 		}
 
@@ -858,7 +853,7 @@ void PrefsDb::loadDefaultPlatformPrefs() {
 											  pref.second.asString().c_str());
 
 			if (sqlite3_exec(m_prefsDb, queryStr.get(), NULL, NULL, NULL)) {
-				qWarning() << "Failed to execute query:" << queryStr.get();
+				PmLogWarning(sysServiceLogContext(), "SQL_ERRRO", 0, "Failed to execute query: %s", queryStr.get());
 			}
 		}
 	} while (false);

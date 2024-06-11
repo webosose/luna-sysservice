@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2023 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@
 #include "PrefsDb.h"
 #include "PrefsHandler.h"
 #include "TimePrefsHandler.h"
-#include "WallpaperPrefsHandler.h"
 #include "BuildInfoHandler.h"
 #include "RingtonePrefsHandler.h"
 
@@ -105,20 +104,19 @@ void PrefsFactory::setServiceHandle(LSHandle* serviceHandle)
 	LS::Error error;
 	if (!LSRegisterCategory(serviceHandle, "/", s_methods, nullptr, nullptr, error))
 	{
-		qCritical() << "Failed to register methods:" << error.what();
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_REGISTER", 0, "Failed to register methods:%s", error.what());
 		return;
 	}
 
 	if (!LSRegisterCategory(serviceHandle, "/softwareInfo", q_methods, nullptr, nullptr, error))
 	{
-		qCritical() << "Failed to register methods:" << error.what();
+		PmLogCritical(sysServiceLogContext(), "FAILED_TO_REGISTER", 0, "Failed to register methods:%s", error.what());
 		return;
 	}
 
 	// Now we can create all the prefs handlers
 	registerPrefHandler(std::make_shared<LocalePrefsHandler>(serviceHandle));
 	registerPrefHandler(std::make_shared<TimePrefsHandler>(serviceHandle));
-	registerPrefHandler(std::make_shared<WallpaperPrefsHandler>(serviceHandle));
 	registerPrefHandler(std::make_shared<BuildInfoHandler>(serviceHandle));
 	registerPrefHandler(std::make_shared<RingtonePrefsHandler>(serviceHandle));
 }
@@ -184,7 +182,7 @@ void PrefsFactory::postPrefChangeValueIsCompleteString(const std::string& keyStr
 	//**DEBUG validate for correct UTF-8 output
 	if (!g_utf8_validate (reply.c_str(), -1, NULL))
 	{
-		qWarning() << "bus reply fails UTF-8 validity check! [" << reply.c_str() << "]";
+		PmLogWarning(sysServiceLogContext(), "BUS_REPLY_FAIL", 0,  "bus reply fails UTF-8 validity check! [%s]", reply.c_str());
 	}
 
 	bool retVal = LSSubscriptionAcquire(m_serviceHandle, keyStr.c_str(), &iter, &lserror);
@@ -243,10 +241,10 @@ void PrefsFactory::runConsistencyChecksOnAllHandlers()
 		if (handler) {
 			//run the verifier on this key to make sure the pref is correct
 			if (handler->isPrefConsistent() == false) {
-				qWarning() << "reports inconsistency with key [" << key.c_str() << "]. Restoring default...";
+				PmLogWarning(sysServiceLogContext(), "INCONSISTENCY_KEY", 0,"reports inconsistency with key [%s].Restoring default...", key.c_str());
 				handler->restoreToDefault();		//something is wrong with this...try and restore it
 				std::string restoreVal = PrefsDb::instance()->getPref(key);
-				qWarning() << "key [" << key.c_str() << "] restored to value [" << restoreVal.c_str() << "]";
+				PmLogWarning(sysServiceLogContext(), "INCONSISTENCY_KEY", 0, "key [%s] restored to value [%s]",  key.c_str(), restoreVal.c_str());
 				PrefsFactory::instance()->postPrefChange(key,restoreVal);
 			}
 		}
@@ -348,20 +346,20 @@ static bool cbSetPreferences(LSHandle* lsHandle, LSMessage* message,
 			if (handler) {
 				PMLOG_TRACE("found handler for %s", key.c_str());
 				if (handler->validate(key, pref.second, callerId)) {
-					qDebug("handler validated value for key [%s]",key.c_str());
+					PmLogDebug(sysServiceLogContext(),"handler validated value for key [%s]",key.c_str());
 					savedPref = PrefsDb::instance()->setPref(key, value);
 				}
 				else {
-					qWarning() << "handler DID NOT validate value for key:" << key.c_str();
+					PmLogWarning(sysServiceLogContext(), "VALIDATE_FAIL", 0, "handler DID NOT validate value for key: %s", key.c_str());
 				}
 			}
 			else {
-				qWarning() << "setPref did NOT find handler for:" << key.c_str();
+				PmLogWarning(sysServiceLogContext(), "HANDLER_NOT_FOUND", 0, "setPref did NOT find handler for: %s", key.c_str());
 
 				//filter out
 				savedPref = PrefsDb::instance()->setPref(key, value);
 			}
-			qDebug("setPref saved? %s",(savedPref ? "true" : "false"));
+			PmLogDebug(sysServiceLogContext(),"setPref saved? %s",(savedPref ? "true" : "false"));
 
 			if (savedPref) {
 				++savecount;
@@ -391,7 +389,7 @@ static bool cbSetPreferences(LSHandle* lsHandle, LSMessage* message,
 	JObject result {{"returnValue", success}};
 	if (!success) {
 		result.put("errorText", errorText);
-		qWarning() << errorText.c_str();
+		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "error: %s", errorText.c_str());
 	}
 
 	LS::Error error;
@@ -421,7 +419,7 @@ static bool cbSwInfo(LSHandle *lsHandle, LSMessage *message, void *)
 			auto query = versions.find(parameters.asString());
 			if (query == versions.end())
 			{
-				qWarning() << "reached invalid parameter";
+				PmLogWarning(sysServiceLogContext(),"INVALID_PARAMETER",0,"reached invalid parameter");
 				response_json =
 					pbnjson::JObject{{"returnValue", false}, {"errorText", "Invalid parameter: " + parameters.stringify()}};
 				request.respond(response_json.stringify().c_str());
@@ -461,7 +459,7 @@ static bool cbSwInfo(LSHandle *lsHandle, LSMessage *message, void *)
 	LS::Error error;
 	if (!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error))
 	{
-		qWarning() << "Failed to send LS reply: " << error.what();
+		PmLogWarning(sysServiceLogContext(),"LS_REPLY_FAILED",0,"Failed to send LS reply: %s",error.what());
 	}
 
 	return true;
@@ -628,7 +626,7 @@ static bool cbGetPreferences(LSHandle* lsHandle, LSMessage* message, void*)
 		 it != resultMap.end(); ++it) {
 		JValue value = JDomParser::fromString((*it).second);
 		if (value.isValid()) {
-			qDebug("resultMap: [%s] -> [---, length %zu]",(*it).first.c_str(),(*it).second.size());
+			PmLogDebug(sysServiceLogContext(),"resultMap: [%s] -> [---, length %zu]",(*it).first.c_str(),(*it).second.size());
 			reply.put((*it).first, value);
 		}
 		else {
@@ -661,7 +659,7 @@ static bool cbGetPreferences(LSHandle* lsHandle, LSMessage* message, void*)
 						 {"subscribed", false},
 						 {"errorCode", errorCode}};
 
-		qWarning() << errorCode.c_str();
+		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "error: %s", errorCode.c_str());
 	}
 
 	LS::Error error;
@@ -781,7 +779,7 @@ static bool cbGetPreferenceValues(LSHandle* lsHandle, LSMessage* message, void* 
 	LS::Error error;
 	if (!LSMessageReply(lsHandle, message, reply.stringify().c_str(), error))
 	{
-		qWarning() << error.what();
+		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "error: %s", error.what());
 	}
 
 	return true;

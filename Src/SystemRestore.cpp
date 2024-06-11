@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2021 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,10 @@
 #include <pbnjson.hpp>
 #include <luna-service2/lunaservice.h>
 
+#ifdef WEBOS_QT
 #include <QtCore/QDebug>
 #include <QtGui/QImageReader>
+#endif //WEBOS_QT
 
 #include "Utils.h"
 #include "Logging.h"
@@ -40,13 +42,13 @@ SystemRestore::SystemRestore() : m_msmState(Phone)
 		//load the defaults file
 		JValue root = JDomParser::fromFile(PrefsDb::s_defaultPrefsFile);
 		if (!root.isObject()) {
-			qWarning() << "Failed to load prefs file:" << PrefsDb::s_defaultPrefsFile;
+			PmLogWarning(sysServiceLogContext(), "LOAD_PREFERENCES_FAIL", 0, "Failed to load prefs file: %s", PrefsDb::s_defaultPrefsFile);
 			break;
 		}
 
 		JValue prefs = root["preferences"];
 		if (!prefs.isObject()) {
-			qWarning() << "Failed to get valid preferences entry from file";
+			PmLogWarning(sysServiceLogContext(), "INVALID_PREFERENCES", 0, "Failed to get valid preferences entry from file");
 			break;
 		}
 
@@ -63,13 +65,13 @@ SystemRestore::SystemRestore() : m_msmState(Phone)
 	//load the defaults file
 	JValue root = JDomParser::fromFile(PrefsDb::s_defaultPlatformPrefsFile);
 	if (!root.isObject()) {
-		qWarning() << "Failed to load prefs file:" << PrefsDb::s_defaultPlatformPrefsFile;
+		PmLogWarning(sysServiceLogContext(), "LOAD_PREFERENCES_FAIL", 0, "Failed to load prefs file: %s", PrefsDb::s_defaultPlatformPrefsFile);
 		return;
 	}
 
 	JValue prefs = root["preferences"];
 	if (!prefs.isObject()) {
-		qWarning() << "Failed to get valid preferences entry from file";
+		PmLogWarning(sysServiceLogContext(), "INVALID_PREFERENCES", 0, "Failed to get valid preferences entry from file");
 		return;
 	}
 
@@ -131,7 +133,7 @@ int SystemRestore::fileCopy(const char * srcFileAndPath,const char * dstFileAndP
 	g_object_unref(dst);
 	
 	if (rc == false) {
-		qWarning("file copy error %d: [%s]",err->code,err->message);
+		PmLogWarning(sysServiceLogContext(), "FILE_COPY_ERROR", 0, "file copy error %d: [%s]",err->code,err->message);
 		g_error_free(err);
 		return -1;
 	}
@@ -158,14 +160,15 @@ int SystemRestore::restoreDefaultRingtoneToMediaPartition()
 	Utils::splitFileAndPath(defaultRingtoneFileAndPath,pathPart,filePart);
 	if (filePart.length() == 0)
 	{
-		qWarning() << "filepart.length == 0," << filePart.c_str();
+		PmLogWarning(sysServiceLogContext(), "FILE_LENGTH_ZERO", 0, "filepart.length == 0, %s", filePart.c_str());
 		return -1;
 	}
 	std::string targetFileAndPath = std::string(PrefsDb::s_mediaPartitionPath)+std::string(PrefsDb::s_mediaPartitionRingtonesDir)+std::string("/")+filePart;
 	int rc = Utils::fileCopy(defaultRingtoneFileAndPath.c_str(),targetFileAndPath.c_str());
 	if (rc == -1)
 	{
-		qWarning() << "filecopy" << defaultRingtoneFileAndPath.c_str() << "->" << targetFileAndPath.c_str() << "failed";
+		PmLogWarning(sysServiceLogContext(), "FILE_COPY_FAILED", 0, "filecopy %s --> %s failed", defaultRingtoneFileAndPath.c_str(), targetFileAndPath.c_str());
+
 		return -1;
 	}
 	return 1;
@@ -174,7 +177,7 @@ int SystemRestore::restoreDefaultWallpaperToMediaPartition()
 {
 	//check the file specified by defaultWallpaperFileAndPath
 	if (!Utils::doesExistOnFilesystem(defaultWallpaperFileAndPath.c_str()) ) {
-		qWarning() << "file" << defaultWallpaperFileAndPath.c_str() << "doesn\'t exist";
+		PmLogWarning(sysServiceLogContext(), "FILE_NOT_EXIST", 0, "file %s doesn\'t exist", defaultWallpaperFileAndPath.c_str());
 		return -1;
 	}
 
@@ -185,7 +188,7 @@ int SystemRestore::restoreDefaultWallpaperToMediaPartition()
 	Utils::splitFileAndPath(defaultWallpaperFileAndPath,pathPart,filePart);
 	if (filePart.length() == 0)
 	{
-		qWarning() << "filepart.length == 0," << filePart.c_str();
+		PmLogWarning(sysServiceLogContext(), "FILE_LENGTH_ZERO", 0, "filepart.length == 0, %s", filePart.c_str());
 		return -1;
 	}
 		
@@ -193,7 +196,7 @@ int SystemRestore::restoreDefaultWallpaperToMediaPartition()
 	int rc = Utils::fileCopy(defaultWallpaperFileAndPath.c_str(),targetFileAndPath.c_str());
 	if (rc == -1)
 	{
-		qWarning() << "filecopy" << defaultWallpaperFileAndPath.c_str() << "->" << targetFileAndPath.c_str() << "failed";
+		PmLogWarning(sysServiceLogContext(), "FILE_COPY_FAILED", 0, "filecopy %s --> %s failed", defaultWallpaperFileAndPath.c_str(), targetFileAndPath.c_str());
 		return -1;
 	}
 
@@ -209,14 +212,13 @@ int SystemRestore::restoreDefaultRingtoneSetting()
 	do {
 		JValue root = JDomParser::fromString(defaultRingtoneString);
 		if (!root.isObject()) {
-			qWarning() << "Failed to parse default ringtone string into json: '"
-					   << defaultRingtoneString.c_str() << "'";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse default ringtone string into json: ' %s '", defaultRingtoneString.c_str());
 			break;
 		}
 
 		JValue label = root["fullPath"];
 		if (!label.isString()) {
-			qWarning() << "Failed to parse ringtone details";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse ringtone details");
 			break;
 		}
 
@@ -246,14 +248,14 @@ int SystemRestore::restoreDefaultWallpaperSetting()
 	do {
 		JValue root = JDomParser::fromString(defaultWallpaperString);
 		if (!root.isObject()) {
-			qWarning() << "Failed to parse default wallpaper string into json: '"
-					   << defaultWallpaperString.c_str() << "'";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse default wallpaper string into json: ' %s '", defaultWallpaperString.c_str());
+
 			break;
 		}
 
 		JValue label = root["wallpaperFile"];
 		if (!label.isString()) {
-			qWarning() << "Failed to parse wallpaper details";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse wallpaper details");
 			break;
 		}
 
@@ -263,8 +265,8 @@ int SystemRestore::restoreDefaultWallpaperSetting()
 		//restore the default wallpaper file to the media partition
 		rc = restoreDefaultWallpaperToMediaPartition();
 		if (rc == -1) {
-			qWarning() << "SystemRestore::restoreDefaultWallpaperSetting(): [ERROR] could not copy default wallpaper ["
-					   << defaultWallpaperFileAndPath.c_str() << "] to media partition";
+			PmLogWarning(sysServiceLogContext(), "RESTORE_ERROR", 0, "SystemRestore::restoreDefaultWallpaperSetting(): [ERROR] could not copy default wallpaper [%s] to media partition", defaultWallpaperFileAndPath.c_str());
+
 			rc=0;
 			break;		//error of some kind
 		}
@@ -291,28 +293,28 @@ bool SystemRestore::isRingtoneSettingConsistent()
 		//parse the setting
 		JValue root = JDomParser::fromString(ringToneRawPref);
 		if (!root.isObject()) {
-			qWarning() << "Failed to parse ringtone raw string into json: '" << ringToneRawPref.c_str() << "'";
+			PmLogWarning(sysServiceLogContext(), "PARSE_ERROR", 0, "Failed to parse ringtone raw string into json: '%s'", ringToneRawPref.c_str());
 			break;
 		}
 
 		JValue label = root["fullPath"];
 		if (!label.isString()) {
-			qWarning() << "Failed to parse ringtone details";
+			PmLogWarning(sysServiceLogContext(), "PARSE_ERROR", 0, "Failed to parse ringtone details");
 			break;
 		}
 
 		ringToneFileAndPath = label.asString();
 
-		qDebug("checking [%s]...",ringToneFileAndPath.c_str());
+		PmLogDebug(sysServiceLogContext(),"checking [%s]...",ringToneFileAndPath.c_str());
 		//check to see if file exists
 		if (Utils::doesExistOnFilesystem(ringToneFileAndPath.c_str())) {
 			if (Utils::filesizeOnFilesystem(ringToneFileAndPath.c_str()) > 0)			//TODO: a better check for corruption; see wallpaper consist. checking
 				rc = true;
 			else
-				qWarning() << "file size is 0; corrupt file";
+				PmLogWarning(sysServiceLogContext(), "FILE_SIZE_ZERO", 0, "file size is 0; corrupt file");
 		}
 		else {
-			qWarning() << "Sound file is not on filesystem";
+			PmLogWarning(sysServiceLogContext(), "INVALID_FILE", 0, "Sound file is not on filesystem");
 		}
 	} while (false);
 
@@ -334,28 +336,29 @@ bool SystemRestore::isWallpaperSettingConsistent()
 		//parse the setting
 		JValue root = JDomParser::fromString(wallpaperRawPref);
 		if (!root.isObject()) {
-			qWarning() << "Failed to parse wallpaper string into json: '" << wallpaperRawPref.c_str() << "'";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse wallpaper string into json: '%s'", wallpaperRawPref.c_str());
 			break;
 		}
 
 		JValue label = root["wallpaperFile"];
 		if (!label.isString()) {
-			qWarning() << "Failed to parse wallpaper details";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse wallpaper details");
 			break;
 		}
 
 		wallpaperFileAndPath = label.asString();
 
-		qDebug("checking [%s]...",wallpaperFileAndPath.c_str());
+		PmLogDebug(sysServiceLogContext(),"checking [%s]...",wallpaperFileAndPath.c_str());
 		//check to see if file exists
-
+#ifdef WEBOS_QT
 		{
-			QImageReader reader(QString::fromStdString(wallpaperFileAndPath));
+			QImageReader reader(wallpaperFileAndPath.c_str());
 			if (reader.canRead())
 				rc = true;
 			else
 				qWarning() <<reader.errorString()<<reader.fileName();
 		}
+#endif //WEBOS_QT
 	} while (false);
 
 	return rc;
@@ -375,14 +378,13 @@ void SystemRestore::refreshDefaultSettings()
 		//parse the setting
 		JValue root = JDomParser::fromString(wallpaperRawDefaultPref);
 		if (!root.isObject()) {
-			qWarning() << "Failed to parse wallpaper default pref string into json: '"
-					   << wallpaperRawDefaultPref.c_str() << "'";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse wallpaper default pref string into json: '%s'", wallpaperRawDefaultPref.c_str());
 			break;
 		}
 
 		JValue label = root["wallpaperFile"];
 		if (!label.isString()) {
-			qWarning() << "Failed to parse wallpaper details";
+			PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse wallpaper details");
 			break;
 		}
 
@@ -398,14 +400,13 @@ void SystemRestore::refreshDefaultSettings()
 	//parse the setting
 	JValue root = JDomParser::fromString(ringtoneRawDefaultPref);
 	if (!root.isObject()) {
-		qWarning() << "Failed to parse ringtone deafult pref string into json: '"
-				   << ringtoneRawDefaultPref.c_str() << "'";
+		 PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse ringtone deafult pref string into json: '%s'",ringtoneRawDefaultPref.c_str());
 		return;
 	}
 
 	JValue label = root["fullPath"];
 	if (!label.isString()) {
-		qWarning() << "Failed to parse ringtone details";
+		PmLogWarning(sysServiceLogContext(), "PARSE_FAILED", 0, "Failed to parse ringtone details");
 		return;
 	}
 
@@ -461,7 +462,7 @@ int SystemRestore::startupConsistencyCheck()
 
 	if (Utils::doesExistOnFilesystem(PrefsDb::s_systemTokenFileAndPath) == false) {
 		//the media partition has been reformatted or damaged
-		qWarning() << "running - system token missing; media was erased/damaged";
+		PmLogWarning(sysServiceLogContext(), "TOKEN_MISSING", 0, "running - system token missing; media was erased/damaged");
 		//run restore
 
 		int rc=0;		//avoid having tons of if's ...so don't mess with the return values of the restore__ functions
@@ -478,7 +479,7 @@ int SystemRestore::startupConsistencyCheck()
 			}
 		}
 		else {
-			qWarning() << "running - system token missing and WAS NOT written because one of the restore functions failed!";
+			PmLogWarning(sysServiceLogContext(), "TOKEN_MISSING", 0, "running - system token missing and WAS NOT written because one of the restore functions failed!");
 		}
 	}
 	else {
@@ -555,7 +556,7 @@ int SystemRestore::runtimeConsistencyCheck()
 bool SystemRestore::msmAvailCallback(LSHandle* handle, LSMessage* message, void* ctxt)
 {
 	if (LSMessageIsHubErrorMessage(message)) {  // returns false if message is NULL
-		qWarning("The message received is an error message from the hub");
+		PmLogWarning(sysServiceLogContext(), "HUB_ERROR_MESSAGE", 0, "The message received is an error message from the hub");
 		return true;
 	}
 	return SystemRestore::instance()->msmAvail(message);
@@ -564,7 +565,7 @@ bool SystemRestore::msmAvailCallback(LSHandle* handle, LSMessage* message, void*
 bool SystemRestore::msmProgressCallback(LSHandle* handle, LSMessage* message, void* ctxt)
 {
 	if (LSMessageIsHubErrorMessage(message)) {  // returns false if message is NULL
-		qWarning("The message received is an error message from the hub");
+		PmLogWarning(sysServiceLogContext(), "HUB_ERROR_MESSAGE", 0, "The message received is an error message from the hub");
 		return true;
 	}
 	return SystemRestore::instance()->msmProgress(message);
@@ -573,7 +574,7 @@ bool SystemRestore::msmProgressCallback(LSHandle* handle, LSMessage* message, vo
 bool SystemRestore::msmEntryCallback(LSHandle* handle, LSMessage* message, void* ctxt)
 {
 	if (LSMessageIsHubErrorMessage(message)) {  // returns false if message is NULL
-		qWarning("The message received is an error message from the hub");
+		PmLogWarning(sysServiceLogContext(), "HUB_ERROR_MESSAGE", 0, "The message received is an error message from the hub");
 		return true;
 	}
 	return SystemRestore::instance()->msmEntry(message);
@@ -582,7 +583,7 @@ bool SystemRestore::msmEntryCallback(LSHandle* handle, LSMessage* message, void*
 bool SystemRestore::msmFsckingCallback(LSHandle* handle, LSMessage* message, void* ctxt)
 {
 	if (LSMessageIsHubErrorMessage(message)) {  // returns false if message is NULL
-		qWarning("The message received is an error message from the hub");
+		PmLogWarning(sysServiceLogContext(), "HUB_ERROR_MESSAGE", 0, "The message received is an error message from the hub");
 		return true;
 	}
 	return SystemRestore::instance()->msmFscking(message);
@@ -591,7 +592,7 @@ bool SystemRestore::msmFsckingCallback(LSHandle* handle, LSMessage* message, voi
 bool SystemRestore::msmPartitionAvailCallback(LSHandle* handle, LSMessage* message, void* ctxt)
 {
 	if (LSMessageIsHubErrorMessage(message)) {  // returns false if message is NULL
-		qWarning("The message received is an error message from the hub");
+		PmLogWarning(sysServiceLogContext(), "HUB_ERROR_MESSAGE", 0, "The message received is an error message from the hub");
 		return true;
 	}
 	return SystemRestore::instance()->msmPartitionAvailable(message);
@@ -611,7 +612,7 @@ bool SystemRestore::msmAvail(LSMessage* message)
 	JValue avail = parser.get()["mode-avail"];
 	if (!avail.isValid()) return false;
 
-	qDebug("msmAvail(): MSM available: %s", avail.asBool() ? "true" : "false");
+	PmLogDebug(sysServiceLogContext(),"msmAvail(): MSM available: %s", avail.asBool() ? "true" : "false");
 
 	//attrib it all for good measure  ... necessary because attrib-ing at boot doesn't always work, storaged sometimes lies about partition available
 	//			...so try it again right before the user can go into storage mode and see the hidden files anyways
@@ -646,7 +647,7 @@ bool SystemRestore::msmProgress(LSMessage* message)
 	JValue stage = parser.get()["stage"];
 	if (!stage.isValid()) return false;
 
-	qDebug("msmProgress(): MSM stage: [%s]", stage.asString().c_str());
+	PmLogDebug(sysServiceLogContext(),"msmProgress(): MSM stage: [%s]", stage.asString().c_str());
 
 	return true;
 }
@@ -671,7 +672,7 @@ bool SystemRestore::msmEntry(LSMessage* message)
 		m_msmState = Phone;
 	}
 
-	qDebug("msmEntry(): MSM mode: [%s]", mode.asString().c_str());
+	PmLogDebug(sysServiceLogContext(),"msmEntry(): MSM mode: [%s]", mode.asString().c_str());
 
 	return true;
 }
@@ -711,7 +712,7 @@ bool SystemRestore::msmPartitionAvailable(LSMessage* message)
 	if (label.isValid())
 		available = label.asBool();
 
-	qDebug("msmPartitionAvailable(): mount point: [%s] , available: %s", mountPoint.c_str(),
+	PmLogDebug(sysServiceLogContext(),"msmPartitionAvailable(): mount point: [%s] , available: %s", mountPoint.c_str(),
 		   (available ? "true" : "false"));
 
 	if (available && (mountPoint == "/media/internal")) {

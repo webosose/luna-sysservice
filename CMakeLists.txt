@@ -1,6 +1,6 @@
 # @@@LICENSE
 #
-# Copyright (c) 2012-2022 LG Electronics, Inc.
+# Copyright (c) 2012-2024 LG Electronics, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,11 +64,13 @@ if (DESKTOP)
     webos_add_compiler_flags(ALL -DDESKTOP)
 endif()
 
-find_package(Qt6 COMPONENTS Core Gui)
-if (NOT Qt6_FOUND)
-     pkg_check_modules(QtGui REQUIRED Qt5Gui)
-     include_directories(${QtGui_INCLUDE_DIRS})
-endif()
+#if(${USE_WEBOS_QT})
+#find_package(Qt6 COMPONENTS Core Gui)
+#if (NOT Qt6_FOUND)
+#     pkg_check_modules(QtGui REQUIRED Qt5Gui)
+#     include_directories(${QtGui_INCLUDE_DIRS})
+#endif()
+#endif()
 
 # -- check for uriparser
 pkg_check_modules(URIPARSER REQUIRED liburiparser)
@@ -103,12 +105,10 @@ set(SOURCE_FILES Src/Logging.cpp
     Src/BroadcastTime.cpp
     Src/BroadcastTimeHandler.cpp
     Src/UrlRep.cpp
-    Src/WallpaperPrefsHandler.cpp
     Src/BuildInfoHandler.cpp
     Src/Utils.cpp
     Src/SystemRestore.cpp
     Src/RingtonePrefsHandler.cpp
-    Src/ImageServices.cpp
     Src/Mainloop.cpp
     Src/TimeZoneService.cpp
     Src/TzParser.cpp
@@ -132,17 +132,16 @@ target_link_libraries(LunaSysService
                       ${PBNJSON_CPP_LDFLAGS}
                       ${LS2_LDFLAGS}
                       ${LS2++_LDFLAGS}
-                      ${QtGui_LDFLAGS}
                       ${URIPARSER_LDFLAGS}
                       ${PMLOG_LDFLAGS}
                       ${NYXLIB_LDFLAGS}
                       ${WEBOSI18N_LDFLAGS}
                       rt
                       )
+#if (Qt6_FOUND)
+    #target_link_libraries(LunaSysService PRIVATE Qt::Core Qt::Gui)
 
-if (Qt6_FOUND)
-    target_link_libraries(LunaSysService PRIVATE Qt::Core Qt::Gui)
-endif()
+#endif()
 
 webos_build_system_bus_files()
 webos_build_daemon()

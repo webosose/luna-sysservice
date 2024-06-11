@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2018 LG Electronics, Inc.
+// Copyright (c) 2012-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ bool JsonMessageParser::parse(const char * callerFunction)
 		const char * errorText = "Could not validate json message against schema";
 		if (!mParser.parse(mJson, pbnjson::JSchema::AllSchema()))
 			errorText = "Invalid json message";
-		qCritical() << "Called by:" << callerFunction << ":" << errorText << "\'" << mJson << "\'";
+		PmLogCritical(sysServiceLogContext(), "PARSE_FAILED", 0, "Called by: %s : %s \' %s \' ", callerFunction, errorText, mJson);
 		return false;
 	}
 	return true;
@@ -73,14 +73,14 @@ std::string LSMessageJsonParser::getSender()
 	std::string strSender = "";
 
 	if (mMessage) {
-		qDebug("About to call LSMessageGetSenderServiceName()...");
+		PmLogDebug(sysServiceLogContext(),"About to call LSMessageGetSenderServiceName()...");
 		const char * sender = LSMessageGetSenderServiceName(mMessage);
 
 		if (sender && *sender) {
-			qDebug("About to call LSMessageGetSender()...");
+			PmLogDebug(sysServiceLogContext(),"About to call LSMessageGetSender()...");
 			if (LSMessageGetSender(mMessage)) {
 				strSender = std::string(LSMessageGetSender(mMessage));
-				qDebug("sender: %s", strSender.c_str());
+				PmLogDebug(sysServiceLogContext(),"sender: %s", strSender.c_str());
 			}
 		}
 	}
@@ -104,12 +104,12 @@ bool LSMessageJsonParser::parse(const char * callerFunction, LSHandle * lssender
 		// Try parsing the message with empty schema, just to verify that it is a valid json message
 		if (!mParser.parse(payload, pbnjson::JSchema::AllSchema()))
 		{
-			qWarning("[JSON Error] : [%s : %s]: The message '%s' sent by '%s' is not a valid json message", callerFunction, getMsgCategoryMethod().c_str(), payload, getSender().c_str());
+			PmLogWarning(sysServiceLogContext(), "JSON_ERROR", 0, "[JSON Error] : [%s : %s]: The message '%s' sent by '%s' is not a valid json message", callerFunction, getMsgCategoryMethod().c_str(), payload, getSender().c_str());
 			errorText = mParser.getError(); // invalid json message
 		}
 		else
 		{
-			qCritical("[Schema Error] : [%s :%s]: Could not validate json message '%s' sent by '%s' against schema.", callerFunction, getMsgCategoryMethod().c_str(), payload, getSender().c_str());
+			PmLogCritical(sysServiceLogContext(), "PARSE_FAILED", 0, "[Schema Error] : [%s :%s]: Could not validate json message '%s' sent by '%s' against schema.", callerFunction, getMsgCategoryMethod().c_str(), payload, getSender().c_str());
 		}
 
 		if (EValidateAndError == validationOption || EValidateAndErrorAlways == validationOption)
@@ -120,7 +120,7 @@ bool LSMessageJsonParser::parse(const char * callerFunction, LSHandle * lssender
 				std::string reply = createJsonReply(false, 1, errorText).stringify();
 				if (!LSMessageReply(lssender, mMessage, reply.c_str(), error))
 				{
-					qCritical("%s(%d) Luna Service Reply Error\"%s\"",
+					PmLogCritical(sysServiceLogContext(), "LSMESSAGEREPLY_FAILED", 0, "%s(%d) Luna Service Reply Error\"%s\"",
 							  __FILE__, __LINE__, error.what());
 				}
 			}
