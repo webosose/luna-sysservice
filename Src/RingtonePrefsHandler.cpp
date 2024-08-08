@@ -185,7 +185,7 @@ static bool cbAddRingtone(LSHandle* lsHandle, LSMessage *message, void *)
 	std::string targetFileAndPath;
 	std::string pathPart ="";
 	std::string filePart ="";
-	
+	int errorCode =0;
 	UrlRep urlRep;
 
 	do {
@@ -203,22 +203,25 @@ static bool cbAddRingtone(LSHandle* lsHandle, LSMessage *message, void *)
 		// UNSUPPORTED: non-file:// schemes
 		if ((urlRep.scheme != "") && (urlRep.scheme != "file")) {
 			errorText = std::string("input file specification doesn't support non-local files (use file:///path/file or /path/file format");
+                        errorCode = 100;
 			break;
 		}
 
-		//check the file exist on the file system.
-		if (!Utils::doesExistOnFilesystem(srcFileName.c_str())) {
-			errorText = std::string("source file doesn't exist");
-			break;
-		}
-
-		//copy it to the media partition
+                //copy it to the media partition
 
 		Utils::splitFileAndPath(srcFileName, pathPart, filePart);
 
 		if (filePart.length() == 0) {
 			errorText = std::string("source file name missing.");
+                        errorCode = 101;
 			break;
+		}
+
+		//check the file exist on the file system.
+		if (!Utils::doesExistOnFilesystem(srcFileName.c_str())) {
+                        errorText = std::string("source file doesn't exist");
+                        errorCode = 103;
+                        break;
 		}
 
 		targetFileAndPath = std::string(PrefsDb::s_mediaPartitionPath)+std::string(PrefsDb::s_mediaPartitionRingtonesDir)+std::string("/")+filePart;
@@ -226,6 +229,7 @@ static bool cbAddRingtone(LSHandle* lsHandle, LSMessage *message, void *)
 
 		if (rc == -1) {
 			errorText = std::string("Unable to add ringtone.");
+                        errorCode = 102;
 			break;
 		}
 
@@ -236,6 +240,7 @@ static bool cbAddRingtone(LSHandle* lsHandle, LSMessage *message, void *)
 
 	if (!success) {
 		response.put("errorText", errorText);
+                response.put("errorCode", errorCode);
 	}
 
 	LS::Error error;
@@ -305,7 +310,7 @@ static bool cbDeleteRingtone(LSHandle* lsHandle, LSMessage *message, void *user_
 
 	bool success = true;
 	int rc = 0;
-
+        int errorCode = 0;
 	std::string errorText;
 	std::string pathPart ="";
 	std::string filePart ="";
@@ -316,26 +321,22 @@ static bool cbDeleteRingtone(LSHandle* lsHandle, LSMessage *message, void *user_
 
 		std::string srcFileName = root["filePath"].asString();
 
-		//check the file exist on the file system.
-		if (!Utils::doesExistOnFilesystem(srcFileName.c_str())) {
-			errorText = std::string("file doesn't exist");
-			success = false;
-			break;
-		}
-
 		//make sure we are deleting files only from ringtone partion.
 		Utils::splitFileAndPath(srcFileName,pathPart,filePart);
 
 		if (filePart.length() == 0) {
 			errorText = std::string("source file name missing.");
+                        errorCode = 101;
 			success = false;
 			break;
 		}
 
-		if(pathPart.compare(ringtonePartition) != 0) {
-			errorText = std::string("Unable to delete.");
-			success = false;
-			break;
+		//check the file exist on the file system.
+                if (!Utils::doesExistOnFilesystem(srcFileName.c_str())) {
+                       errorText = std::string("file doesn't exist");
+                       errorCode = 100;
+                       success = false;
+                       break;
 		}
 
 		//UI is currently making sure that the current ringtone is not getting deleted. May be, we can check again here to make sure the current ringtone is not removed.
@@ -343,6 +344,7 @@ static bool cbDeleteRingtone(LSHandle* lsHandle, LSMessage *message, void *user_
 		rc = unlink(srcFileName.c_str());
 		if(rc == -1) {
 			errorText = std::string("Unable to delete ringtone.");
+                        errorCode = 102;
 			success = false;
 			break;
 		}
@@ -351,6 +353,7 @@ static bool cbDeleteRingtone(LSHandle* lsHandle, LSMessage *message, void *user_
 	JObject response {{"returnValue", success}};
 	if (!success) {
 		response.put("errorText", errorText);
+                response.put("errorCode", errorCode);
 		PmLogWarning(sysServiceLogContext(), "ERROR_MESSAGE", 0, "error: %s", errorText.c_str());
 	}
 
