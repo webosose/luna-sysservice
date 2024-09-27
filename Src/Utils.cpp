@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2023 LG Electronics, Inc.
+// Copyright (c) 2010-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 /*
  * Base64 encoding copyright follows:
- * 
+ *
  * Copyright (C) 2004-2008 René Nyffenegger
 
    This source code is provided 'as-is', without any express or implied
@@ -38,7 +38,7 @@
    3. This notice may not be removed or altered from any source distribution.
 
    René Nyffenegger rene.nyffenegger@adp-gmbh.ch
- * 
+ *
  */
 
 
@@ -112,7 +112,7 @@ std::string trimWhitespace(const std::string& s,const std::string& drop)
 {
  std::string::size_type first = s.find_first_not_of( drop );
  std::string::size_type last  = s.find_last_not_of( drop );
- 
+
  if( first == std::string::npos || last == std::string::npos ) return std::string( "" );
    return s.substr( first, last - first + 1 );
 }
@@ -120,9 +120,9 @@ std::string trimWhitespace(const std::string& s,const std::string& drop)
 bool getNthSubstring(unsigned int n,std::string& dest,const std::string& str,const std::string& delims) {
 	if (n == 0)
 		n=1;
-	
-	std::string::size_type start = 0;
-	std::string::size_type mark = 0;
+
+	std::string::size_type start = std::string::npos;
+	std::string::size_type mark = std::string::npos;
 	unsigned int i=1;
 	while (1) {
 		//find the start of a non-delim
@@ -135,18 +135,18 @@ bool getNthSubstring(unsigned int n,std::string& dest,const std::string& str,con
 			break;	//last substring, or Nth one found
 		++i;
 	}
-	
+
 	if (i != n)
 		return false;
-	
+
 	//extract
 	dest = str.substr(start,mark-start);
 	return true;
-	
+
 }
 
 int splitFileAndPath(const std::string& srcPathAndFile,std::string& pathPart,std::string& filePart) {
-		
+
 	std::vector<std::string> parts;
 	//printf("splitFileAndPath - input [%s]\n",srcPathAndFile.c_str());
 	int s = splitStringOnKey(parts,srcPathAndFile,std::string("/"));
@@ -175,12 +175,12 @@ int splitFileAndPath(const std::string& srcPathAndFile,std::string& pathPart,std
 		pathPart += std::string("/");
 		filePart = parts.at(s-1);
 	}
-	
+
 	return s;
 }
 
 int splitFileAndExtension(const std::string& srcFileAndExt,std::string& filePart,std::string& extensionPart) {
-	
+
 	std::vector<std::string> parts;
 		int s = splitStringOnKey(parts,srcFileAndExt,std::string("."));
 		if (s == 1) {
@@ -202,7 +202,7 @@ int splitStringOnKey(std::vector<std::string>& returnSplitSubstrings,const std::
 	std::string::size_type start = 0;
 	std::string::size_type mark = 0;
 	std::string extracted;
-	
+
 	int i=0;
 	while (start < baseStr.size()) {
 		//find the start of a non-delims
@@ -213,7 +213,7 @@ int splitStringOnKey(std::vector<std::string>& returnSplitSubstrings,const std::
 		mark = baseStr.find_first_of(delims,start);
 		if (mark == std::string::npos)
 			mark = baseStr.size();
-		
+
 		extracted = baseStr.substr(start,mark-start);
 		if (extracted.size() > 0) {
 			//valid string...add it
@@ -230,8 +230,8 @@ void trimWhitespace_inplace(std::string& s_mod,const std::string& drop)
 {
  std::string::size_type first = s_mod.find_first_not_of( drop );
  std::string::size_type last  = s_mod.find_last_not_of( drop );
- 
- if( first == std::string::npos || last == std::string::npos ) 
+
+ if( first == std::string::npos || last == std::string::npos )
 	 s_mod= std::string( "" );
  else
 	 s_mod = s_mod.substr( first, last - first + 1 );
@@ -243,7 +243,7 @@ int splitStringOnKey(std::list<std::string>& returnSplitSubstrings,const std::st
 	std::string::size_type start = 0;
 	std::string::size_type mark = 0;
 	std::string extracted;
-	
+
 	int i=0;
 	while (start < baseStr.size()) {
 		//find the start of a non-delims
@@ -254,7 +254,7 @@ int splitStringOnKey(std::list<std::string>& returnSplitSubstrings,const std::st
 		mark = baseStr.find_first_of(delims,start);
 		if (mark == std::string::npos)
 			mark = baseStr.size();
-		
+
 		extracted = baseStr.substr(start,mark-start);
 		if (extracted.size() > 0) {
 			//valid string...add it
@@ -268,23 +268,23 @@ int splitStringOnKey(std::list<std::string>& returnSplitSubstrings,const std::st
 }
 
 bool doesExistOnFilesystem(const char * pathAndFile) {
-	
+
 	if (pathAndFile == NULL)
 		return false;
-	
+
 	struct stat buf;
 	if (-1 == ::stat(pathAndFile, &buf ) )
 		return false;
 	return true;
-			
-	
+
+
 }
 
 int fileCopy(const char * srcFileAndPath,const char * dstFileAndPath)
 {
 	if ((srcFileAndPath == NULL) || (dstFileAndPath == NULL))
 		return -1;
-	
+
 	FILE * infp = fopen(srcFileAndPath,"rb");
 	FILE * outfp = fopen(dstFileAndPath,"wb");
 	if ((infp == NULL) || (outfp == NULL)) {
@@ -294,7 +294,7 @@ int fileCopy(const char * srcFileAndPath,const char * dstFileAndPath)
 			fclose(outfp);
 		return -1;
 	}
-	
+
 	char buffer[2048];
 	bool success=true;
 	while (!feof(infp)) {
@@ -309,7 +309,7 @@ int fileCopy(const char * srcFileAndPath,const char * dstFileAndPath)
 			break;
 		}
 	}
-	
+
 	fflush(infp);
 	fflush(outfp);	//apparently our filesystem doesn't like to commit even on close
 	fclose(infp);
@@ -341,13 +341,13 @@ unsigned int getRNG_UInt()
 		srand(time(NULL));
 		return rand();
 	}
-	
+
 	unsigned int r=0;
 	int nr=0;
 	do {
 		nr = fread(&r,1, sizeof(r), fp);
 	} while (nr != sizeof(r));
-	
+
 	fclose(fp);
 	return r;
 }
@@ -366,7 +366,7 @@ int urlEncodeFilename(std::string& encodedName,const std::string& decodedName)
 	return 1;
 }
 
-static const std::string base64_chars = 
+static const std::string base64_chars =
 			 "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 			 "abcdefghijklmnopqrstuvwxyz"
 			 "0123456789+/";
@@ -478,7 +478,7 @@ bool extractFromJson(const JValue &root,const std::string& key, std::string& r_v
 
 /*
  * returns 0 on error, >0 otherwise
- * 
+ *
  * Dangerous on its own! Doesn't check for baseDir validity so could technically overwrite things in sensitive places
  * (though unlikely since the temp filenames wont be anything like other, vital files on the filesystem(
  */
@@ -518,7 +518,7 @@ int createTempFile(const std::string& baseDir,const std::string& tag,const std::
 
 void string_to_lower(std::string& str)
 {
-	std::transform(str.begin(), str.end(), str.begin(), tolower);	
+	std::transform(str.begin(), str.end(), str.begin(), tolower);
 }
 
 std::string & append_format(std::string & str, const char * format, ...)
