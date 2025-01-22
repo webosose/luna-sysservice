@@ -1,4 +1,4 @@
-// Copyright (c) 2010-2024 LG Electronics, Inc.
+// Copyright (c) 2010-2025 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,8 +51,9 @@ void logInfo(const char* file, int line, const char* func, const char *fmt, ...)
 	std::string meta = std::string(file) + std::string("#") + std::to_string(line);
 
 	//QString data = QString().vasprintf(fmt, args);
-	va_copy(args, args);
-	int size = vsnprintf(nullptr, 0, fmt, args);
+	va_list args_copy;
+	va_copy(args_copy, args);
+	int size = vsnprintf(nullptr, 0, fmt, args_copy);
 	// Allocate memory for the formatted string
 	std::string data;
 	if (size >= 0)
@@ -66,6 +67,7 @@ void logInfo(const char* file, int line, const char* func, const char *fmt, ...)
 	}
 
 	va_end(args);
+	va_end(args_copy);
 	//PmLogInfo(sysServiceLogContext(), meta.toLatin1().data(), 1, PMLOGKS("FUNC", func), "%s", data.toUtf8().data());
 	PmLogInfo(sysServiceLogContext(), meta.c_str(), 1, PMLOGKS("FUNC", func), "%s", data);
 }
